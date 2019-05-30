@@ -3,6 +3,22 @@
 <JUCERPROJECT id="r0cNpL" name="sfizz" projectType="audioplug" jucerVersion="5.4.3">
   <MAINGROUP id="R5AZRy" name="sfizz">
     <GROUP id="{B195BF29-7091-C3C3-5EDD-E4A6DE8FADE9}" name="Source">
+      <FILE id="UkM4JT" name="JuceHelpers.h" compile="0" resource="0" file="Source/JuceHelpers.h"/>
+      <FILE id="BHT3Ca" name="SfzCCEnvelope.h" compile="0" resource="0" file="Source/SfzCCEnvelope.h"/>
+      <FILE id="SQ2u2D" name="SfzContainer.h" compile="0" resource="0" file="Source/SfzContainer.h"/>
+      <FILE id="JI1mLK" name="SfzDefaults.h" compile="0" resource="0" file="Source/SfzDefaults.h"/>
+      <FILE id="M0gKpR" name="SfzEnvelope.h" compile="0" resource="0" file="Source/SfzEnvelope.h"/>
+      <FILE id="hrK3kd" name="SfzFilePool.h" compile="0" resource="0" file="Source/SfzFilePool.h"/>
+      <FILE id="XNfhFI" name="SfzGlobals.h" compile="0" resource="0" file="Source/SfzGlobals.h"/>
+      <FILE id="wT5U1B" name="SfzOpcode.h" compile="0" resource="0" file="Source/SfzOpcode.h"/>
+      <FILE id="q5zbed" name="SfzRegion.cpp" compile="1" resource="0" file="Source/SfzRegion.cpp"/>
+      <FILE id="RNSftS" name="SfzRegion.h" compile="0" resource="0" file="Source/SfzRegion.h"/>
+      <FILE id="ilAERU" name="SfzSynth.cpp" compile="1" resource="0" file="Source/SfzSynth.cpp"/>
+      <FILE id="beB6YM" name="SfzSynth.h" compile="0" resource="0" file="Source/SfzSynth.h"/>
+      <FILE id="cM4gyA" name="SfzVoice.cpp" compile="1" resource="0" file="Source/SfzVoice.cpp"/>
+      <FILE id="yZ9klx" name="SfzVoice.h" compile="0" resource="0" file="Source/SfzVoice.h"/>
+      <FILE id="tZgYr8" name="StdStringTrimmers.h" compile="0" resource="0"
+            file="Source/StdStringTrimmers.h"/>
       <FILE id="h8OF2g" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="nY7w9D" name="PluginProcessor.h" compile="0" resource="0"

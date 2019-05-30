@@ -136,6 +136,9 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\SfzRegion.cpp"/>
+    <ClCompile Include="..\..\Source\SfzSynth.cpp"/>
+    <ClCompile Include="..\..\Source\SfzVoice.cpp"/>
     <ClCompile Include="..\..\Source\PluginProcessor.cpp"/>
     <ClCompile Include="..\..\Source\PluginEditor.cpp"/>
     <ClCompile Include="..\..\..\..\..\..\JUCE\modules\juce_audio_basics\buffers\juce_AudioChannelSet.cpp">
@@ -1966,6 +1969,18 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_opengl.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\JuceHelpers.h"/>
+    <ClInclude Include="..\..\Source\SfzCCEnvelope.h"/>
+    <ClInclude Include="..\..\Source\SfzContainer.h"/>
+    <ClInclude Include="..\..\Source\SfzDefaults.h"/>
+    <ClInclude Include="..\..\Source\SfzEnvelope.h"/>
+    <ClInclude Include="..\..\Source\SfzFilePool.h"/>
+    <ClInclude Include="..\..\Source\SfzGlobals.h"/>
+    <ClInclude Include="..\..\Source\SfzOpcode.h"/>
+    <ClInclude Include="..\..\Source\SfzRegion.h"/>
+    <ClInclude Include="..\..\Source\SfzSynth.h"/>
+    <ClInclude Include="..\..\Source\SfzVoice.h"/>
+    <ClInclude Include="..\..\Source\StdStringTrimmers.h"/>
     <ClInclude Include="..\..\Source\PluginProcessor.h"/>
     <ClInclude Include="..\..\Source\PluginEditor.h"/>
     <ClInclude Include="..\..\..\..\..\..\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h"/>

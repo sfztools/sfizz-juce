@@ -433,6 +433,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\SfzRegion.cpp">
+      <Filter>sfizz\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\SfzSynth.cpp">
+      <Filter>sfizz\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\SfzVoice.cpp">
+      <Filter>sfizz\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\PluginProcessor.cpp">
       <Filter>sfizz\Source</Filter>
     </ClCompile>
@@ -2418,6 +2427,42 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\JuceHelpers.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzCCEnvelope.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzContainer.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzDefaults.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzEnvelope.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzFilePool.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzGlobals.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzOpcode.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzRegion.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzSynth.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SfzVoice.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StdStringTrimmers.h">
+      <Filter>sfizz\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\PluginProcessor.h">
       <Filter>sfizz\Source</Filter>
     </ClInclude>
