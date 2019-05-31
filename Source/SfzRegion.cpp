@@ -435,7 +435,7 @@ bool SfzRegion::setupSource()
         return true;
     }
 
-    auto sampleFile = rootDirectory.getChildFile(sample);
+    auto sampleFile = rootDirectory.getChildFile(sample.replaceCharacter('\\', '/'));
     auto sfzFile = openFiles.preloadFile(sampleFile, 0, config::preloadSize);
     if (sfzFile.reader != nullptr)
     {
