@@ -146,8 +146,7 @@ struct SfzRegion
 
     double sampleRate { config::defaultSampleRate };
     int activeVoices { 0 }; 
-    // TODO : atomic? But we can't copy atomics... 
-    // Since this should only be set and read on the high priority thread it's not really shared
+    // TODO : Transform regions to list and put this as atomic
 
     std::vector<SfzOpcode> unknownOpcodes;
 private:
