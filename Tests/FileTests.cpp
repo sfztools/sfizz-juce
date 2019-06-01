@@ -152,6 +152,46 @@ TEST_CASE("Header hierarchy", "File tests")
         REQUIRE( synth.getRegionView(7)->delay == 36 );
         REQUIRE( synth.getRegionView(7)->keyRange == Range<uint8_t>(31, 31) );
     }
+
+    SECTION("Reloading files")
+    {
+        SfzSynth synth;
+        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy.sfz"));
+        REQUIRE( synth.getNumRegions() == 8 );
+        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy.sfz"));
+        REQUIRE( synth.getNumRegions() == 8 );
+    }
+
+    SECTION("Full hierarchy with antislashes")
+    {
+        {
+            SfzSynth synth;
+            synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy.sfz"));
+            REQUIRE( synth.getNumRegions() == 8 );
+            REQUIRE( synth.getRegionView(0)->sample == "Regions/dummy.wav" );
+            REQUIRE( synth.getRegionView(1)->sample == "Regions/dummy.1.wav" );
+            REQUIRE( synth.getRegionView(2)->sample == "Regions/dummy.wav" );
+            REQUIRE( synth.getRegionView(3)->sample == "Regions/dummy.1.wav" );
+            REQUIRE( synth.getRegionView(4)->sample == "Regions/dummy.wav"  );
+            REQUIRE( synth.getRegionView(5)->sample == "Regions/dummy.1.wav"  );
+            REQUIRE( synth.getRegionView(6)->sample == "Regions/dummy.wav"  );
+            REQUIRE( synth.getRegionView(7)->sample == "Regions/dummy.1.wav"  );
+        }
+
+        {
+            SfzSynth synth;
+            synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy_antislash.sfz"));
+            REQUIRE( synth.getNumRegions() == 8 );
+            REQUIRE( synth.getRegionView(0)->sample == "Regions/dummy.wav" );
+            REQUIRE( synth.getRegionView(1)->sample == "Regions/dummy.1.wav" );
+            REQUIRE( synth.getRegionView(2)->sample == "Regions/dummy.wav" );
+            REQUIRE( synth.getRegionView(3)->sample == "Regions/dummy.1.wav" );
+            REQUIRE( synth.getRegionView(4)->sample == "Regions/dummy.wav"  );
+            REQUIRE( synth.getRegionView(5)->sample == "Regions/dummy.1.wav"  );
+            REQUIRE( synth.getRegionView(6)->sample == "Regions/dummy.wav"  );
+            REQUIRE( synth.getRegionView(7)->sample == "Regions/dummy.1.wav"  );
+        }
+    }
 }
 
 TEST_CASE("MeatBass", "File tests")
@@ -172,9 +212,9 @@ TEST_CASE("MeatBass", "File tests")
         REQUIRE( synth.getRegionView(1)->randRange == Range<float>(0.25, 0.5) );
         REQUIRE( synth.getRegionView(2)->randRange == Range<float>(0.5, 0.75) );
         REQUIRE( synth.getRegionView(3)->randRange == Range<float>(0.75, 1.0) );
-        REQUIRE( synth.getRegionView(0)->sample == R"(..\Samples\pizz\a0_vl4_rr1.wav)" );
-        REQUIRE( synth.getRegionView(1)->sample == R"(..\Samples\pizz\a0_vl4_rr2.wav)" );
-        REQUIRE( synth.getRegionView(2)->sample == R"(..\Samples\pizz\a0_vl4_rr3.wav)" );
-        REQUIRE( synth.getRegionView(3)->sample == R"(..\Samples\pizz\a0_vl4_rr4.wav)" );
+        REQUIRE( synth.getRegionView(0)->sample == R"(../Samples/pizz/a0_vl4_rr1.wav)" );
+        REQUIRE( synth.getRegionView(1)->sample == R"(../Samples/pizz/a0_vl4_rr2.wav)" );
+        REQUIRE( synth.getRegionView(2)->sample == R"(../Samples/pizz/a0_vl4_rr3.wav)" );
+        REQUIRE( synth.getRegionView(3)->sample == R"(../Samples/pizz/a0_vl4_rr4.wav)" );
     }
 }

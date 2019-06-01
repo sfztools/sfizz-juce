@@ -142,10 +142,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	auto headerIterator = std::sregex_iterator(fullString.begin(), fullString.end(), SfzRegexes::headers);
 	auto regexEnd = std::sregex_iterator();
 	uint32_t maxGroup { 1 };
-	numMasters = 0;
-	numGroups = 0;
-	resetMidiState();
-	ccNames.clear();
+	clear();
 	std::optional<int> defaultSwitch {};
 
 	std::vector<SfzOpcode> globalMembers;
@@ -347,6 +344,7 @@ void SfzSynth::clear()
 {
 	regions.clear();
 	voices.clear();
+	ccNames.clear();
 	initalizeVoices();
 	resetMidiState();
 	openFiles.clear();

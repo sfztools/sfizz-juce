@@ -34,7 +34,9 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     switch (hash(opcode.opcode.c_str()))
     {
     // Sound source: sample playback
-    case hash("sample"): sample = opcode.value; break;
+    case hash("sample"): 
+        sample = String(opcode.value).replaceCharacter('\\', '/');
+    break;
     case hash("delay"): setValueFromOpcode(opcode, delay, SfzDefault::delayRange); break;
     case hash("delay_random"): setValueFromOpcode(opcode, delayRandom, SfzDefault::delayRange); break;
     case hash("offset"): setValueFromOpcode(opcode, offset, SfzDefault::offsetRange); break;
@@ -435,7 +437,7 @@ bool SfzRegion::setupSource()
         return true;
     }
 
-    auto sampleFile = rootDirectory.getChildFile(sample.replaceCharacter('\\', '/'));
+    auto sampleFile = rootDirectory.getChildFile(sample);
     auto sfzFile = openFiles.preloadFile(sampleFile, 0, config::preloadSize);
     if (sfzFile.reader != nullptr)
     {

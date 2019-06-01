@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.14)
 # You need to generate the AppConfig.h and the JuceHeader.h through the Projucer; the rest is more or less here 
 
 project(sfizz VERSION 1.0.0 LANGUAGES CXX)
 
 # Change this if needed
 if(UNIX)
-    set(JUCE_ROOT_DIR "~/sources/JUCE")
+    set(JUCE_ROOT_DIR "~/source/JUCE")
 else()
     set(JUCE_ROOT_DIR "c:/JUCE")
 endif()
@@ -60,7 +60,7 @@ if (UNIX)
     find_package(CURL REQUIRED)
     find_package(Threads REQUIRED)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(deps REQUIRED IMPORTED_TARGET gtk+-3.0 glib-2.0 webkit2gtk-4.0)
+    pkg_check_modules(deps REQUIRED IMPORTED_TARGET gtk+-3.0 glib-2.0 webkit2gtk-4.0 jack)
 endif()
 
 # Juce modules as library targets
@@ -82,9 +82,10 @@ target_include_directories(JUCE PUBLIC ${JUCE_MODULES_DIR}/juce_audio_processors
 # Compile features
 target_compile_features(JUCE PRIVATE cxx_std_17)
 if (UNIX)
-    target_link_libraries(JUCE ALSA::ALSA Freetype::Freetype X11::X11 X11::Xext X11::Xinerama CURL::libcurl PkgConfig::deps)
+    target_link_libraries(JUCE ALSA::ALSA Freetype::Freetype X11::X11 X11::Xext X11::Xinerama CURL::libcurl PkgConfig::deps ${CMAKE_DL_LIBS})
     # Force include the app config
     target_compile_options(JUCE PUBLIC -include "AppConfig.h")
+    target_compile_options(JUCE PRIVATE -fPIC)
 endif()
     
 if(MSVC)

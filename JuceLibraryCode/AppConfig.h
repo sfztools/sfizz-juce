@@ -40,7 +40,7 @@
 #endif
 
 #ifndef JUCE_REPORT_APP_USAGE
- #define JUCE_REPORT_APP_USAGE 1
+ #define JUCE_REPORT_APP_USAGE 0
 #endif
 
 // END SECTION A
@@ -93,7 +93,7 @@
 #endif
 
 #ifndef    JUCE_JACK
- //#define JUCE_JACK 0
+ #define   JUCE_JACK 1
 #endif
 
 #ifndef    JUCE_BELA
