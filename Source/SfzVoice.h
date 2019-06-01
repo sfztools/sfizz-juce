@@ -34,11 +34,11 @@ enum class SfzVoiceState
     release
 };
 
-class SfzVoice: public TimeSliceClient 
+class SfzVoice: public ThreadPoolJob 
 {
 public:
     SfzVoice() = delete;
-    SfzVoice(TimeSliceThread& readAheadThread, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
+    SfzVoice(ThreadPool& fileLoadingPool, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
     ~SfzVoice();
     
     void startVoice(SfzRegion& newRegion, const MidiMessage& msg, int sampleDelay);
@@ -55,11 +55,12 @@ public:
     std::optional<MidiMessage> getTriggeringMessage() const;
 
 private:
-    TimeSliceThread& readAheadThread;
+    ThreadPool& fileLoadingPool;
     const CCValueArray& ccState;
 
     // Fifo/Circular buffer
     mutable AudioBuffer<float> buffer;
+    // TODO : No need for shared pointers anymore
     std::shared_ptr<AbstractFifo> fifo;
 
     // Temporary buffers
@@ -102,12 +103,13 @@ private:
 
     // Resamplers ; these need to be in shared pointers because we store the voices in a vector and they're not copy constructible
     // Not very logical since their ownership is not shared, but anyway...
+    // TODO : No need for shared pointers anymore
     std::array<std::shared_ptr<LagrangeInterpolator>, config::numChannels> resamplers;
 
     void release(int timestamp, bool useFastRelease = false);
     void resetResamplers();
     int resampleStream(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamplesInput, AudioBuffer<float>& outputBuffer, int startSampleOutput, int numSamplesOutput);
-    int useTimeSlice() override;
+    JobStatus runJob() override;
     void applyPanEnvelope(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamples);
     void applyVolumeEnvelope(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamples);
 

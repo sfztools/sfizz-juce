@@ -28,11 +28,41 @@
 struct SfzFile
 {
     SfzFile() = default;
-    SfzFile(std::shared_ptr<AudioFormatReader> reader, std::shared_ptr<AudioBuffer<float>> preloadedBuffer, const File& file)
-    : reader(reader), preloadedBuffer(preloadedBuffer), file(file) {}
-    std::shared_ptr<AudioFormatReader> reader;
+    SfzFile(std::shared_ptr<AudioBuffer<float>> preloadedBuffer, const File& file)
+    : preloadedBuffer(preloadedBuffer), file(file) {}
     std::shared_ptr<AudioBuffer<float>> preloadedBuffer;
     File file;
+};
+
+class SfzReader
+{
+public: virtual int read(AudioBuffer<float> buffer, int startSample, int numSamples) = 0;
+};
+
+class SfzSineReader: public SfzReader
+{
+public:
+    int read(AudioBuffer<float> buffer, int startSample, int numSamples) override
+    {
+
+    }
+private:
+};
+
+class SfzFileReader: public SfzReader
+{
+public:
+    SfzFileReader(std::shared_ptr<AudioBuffer<float>> preloadedBuffer)
+    : preloadedBuffer(preloadedBuffer)
+    {
+
+    }
+    int read(AudioBuffer<float> buffer, int startSample, int numSamples) override
+    {
+        
+    }
+private:
+    std::shared_ptr<AudioBuffer<float>> preloadedBuffer;
 };
 
 class SfzFilePool
@@ -57,9 +87,9 @@ public:
             else
             {
                 std::shared_ptr<AudioFormatReader> reader;
-                if (wavFormat->canHandleFile(sampleFile))
+                if (wavFormat.canHandleFile(sampleFile))
                 {
-                    auto mappedReader = std::unique_ptr<MemoryMappedAudioFormatReader>(wavFormat->createMemoryMappedReader(sampleFile));
+                    auto mappedReader = std::unique_ptr<MemoryMappedAudioFormatReader>(wavFormat.createMemoryMappedReader(sampleFile));
                     if (mappedReader == nullptr)
                     {
                         DBG("Error creating reader for " << sampleFile.getFullPathName());
@@ -69,18 +99,18 @@ public:
                     reader = std::shared_ptr<AudioFormatReader>(mappedReader.release());
                     
                 }
-                else if (oggFormat->canHandleFile(sampleFile))
+                else if (oggFormat.canHandleFile(sampleFile))
                 {
-                    reader = std::shared_ptr<AudioFormatReader>(oggFormat->createReaderFor(sampleFile.createInputStream(), false));
+                    reader = std::shared_ptr<AudioFormatReader>(oggFormat.createReaderFor(sampleFile.createInputStream(), false));
                     if (reader == nullptr)
                     {
                         DBG("Error creating reader for " << sampleFile.getFullPathName());
                         return {};
                     }
                 }
-                else if (flatFormat->canHandleFile(sampleFile))
+                else if (flacFormat.canHandleFile(sampleFile))
                 {
-                    reader = std::shared_ptr<AudioFormatReader>(flatFormat->createReaderFor(sampleFile.createInputStream(), false));
+                    reader = std::shared_ptr<AudioFormatReader>(flacFormat.createReaderFor(sampleFile.createInputStream(), false));
                     if (reader == nullptr)
                     {
                         DBG("Error creating reader for " << sampleFile.getFullPathName());
@@ -98,13 +128,14 @@ public:
 
         return {};
     }
+
     void clear()
     {
         openFiles.clear();
     }
 private:    
-    std::unique_ptr<FlacAudioFormat> flatFormat { new FlacAudioFormat() };
-    std::unique_ptr<OggVorbisAudioFormat> oggFormat { new OggVorbisAudioFormat() };
-    std::unique_ptr<WavAudioFormat> wavFormat { new WavAudioFormat() };
+    FlacAudioFormat flacFormat;
+    OggVorbisAudioFormat oggFormat;
+    WavAudioFormat wavFormat;
     std::vector<SfzFile> openFiles;
 };

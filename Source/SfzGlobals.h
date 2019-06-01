@@ -37,6 +37,7 @@ namespace config
     inline constexpr int numChannels { 2 };
     inline constexpr int numVoices { 128 };
     inline constexpr int maxGroups { 32 };
+    inline constexpr int numLoadingThreads { 4 };
     inline constexpr int midiFeedbackCapacity { numVoices };
     inline constexpr int centPerSemitone { 100 };
     inline constexpr int loopCrossfadeLength { 64 };

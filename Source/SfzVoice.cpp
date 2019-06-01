@@ -21,8 +21,9 @@
 
 #include "SfzVoice.h"
 
-SfzVoice::SfzVoice(TimeSliceThread& readAheadThread, const CCValueArray& ccState, int bufferCapacity)
-: readAheadThread(readAheadThread)
+SfzVoice::SfzVoice(ThreadPool& fileLoadingPool, const CCValueArray& ccState, int bufferCapacity)
+: ThreadPoolJob( "SfzVoice" )
+, fileLoadingPool(fileLoadingPool)
 , ccState(ccState)
 , fifo(std::make_shared<AbstractFifo>(bufferCapacity))
 , buffer(config::numChannels, bufferCapacity)
@@ -37,7 +38,6 @@ SfzVoice::SfzVoice(TimeSliceThread& readAheadThread, const CCValueArray& ccState
 
 SfzVoice::~SfzVoice()
 {
-    readAheadThread.removeTimeSliceClient(this);
 }
 
 void SfzVoice::release(int timestamp, bool useFastRelease)
@@ -164,14 +164,14 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
     }
 
     // Schedule a callback in the background thread
-    readAheadThread.addTimeSliceClient(this);
+    fileLoadingPool.addJob(this, false);
 }
 
-int SfzVoice::useTimeSlice()
+ThreadPoolJob::JobStatus SfzVoice::runJob()
 {
     // No need to read anything in idle state
     if (state == SfzVoiceState::idle)
-        return -1;
+        return ThreadPoolJob::jobHasFinished;
 
     // Release state ended: we can idle
     if (state == SfzVoiceState::release && !amplitudeEGEnvelope.isSmoothing())
@@ -180,14 +180,14 @@ int SfzVoice::useTimeSlice()
         // jassert(amplitudeEGEnvelope.getNextValue() <= config::virtuallyZero);
         DBG("Resetting the voice playing " << region->sample);
         reset();
-        return -1;
+        return ThreadPoolJob::jobHasFinished;
     }
 
     if (region == nullptr)
     {
         // The region has to be set before reading data
         jassertfalse;
-        return -1;
+        return ThreadPoolJob::jobHasFinished;
     }
 
     // We need to delay the source still, so fill in the buffer with zeros some more
@@ -200,7 +200,7 @@ int SfzVoice::useTimeSlice()
     const auto freeSpace = fifo->getFreeSpace();
     // The buffer is full: nothing to do
     if (freeSpace == 0)
-        return -1;
+        return ThreadPoolJob::jobHasFinished;
 
     const auto requiredInputs =  std::min( (int)std::ceil(speedRatio * freeSpace * pitchRatio), tempBuffer.getNumSamples() );
     jassert(sourcePosition <= region->sampleEnd && sourcePosition <= region->loopRange.getEnd());
@@ -256,7 +256,10 @@ int SfzVoice::useTimeSlice()
         }
         
         if (filledInputs == requiredInputs)
-            break;    
+            break;
+
+        if (shouldExit())
+            return ThreadPoolJob::jobNeedsRunningAgain;
     }
     
     // Resample
@@ -282,7 +285,7 @@ int SfzVoice::useTimeSlice()
     // We should not go beyond the loop end or the sample end...
     jassert(sourcePosition <= region->sampleEnd && sourcePosition <= region->loopRange.getEnd());
 
-    return -1;
+    return ThreadPoolJob::jobHasFinished;
 }
 
 void SfzVoice::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -393,7 +396,7 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
 
     // applyAmplitudeEnvelope(outputBuffer, startSample, numSamples);
     // incrementTime(numSamples);
-    readAheadThread.addTimeSliceClient(this);
+    fileLoadingPool.addJob(this, false);
 }
 
 void SfzVoice::reset()

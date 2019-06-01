@@ -53,15 +53,16 @@ private:
     AudioBuffer<float> tempBuffer;
     int numGroups { 0 };
     int numMasters { 0 };
-    TimeSliceThread loadingThread { "Background loading thread" };
+    ThreadPool fileLoadingPool { config::numLoadingThreads };
     std::string parseInclude(const std::string& line);
     std::string readSfzFile(const juce::File &file);
     std::string expandDefines(const std::string& str);
     SfzFilePool openFiles;
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
+    // TODO: transform to list
     std::vector<SfzRegion> regions;
-    std::vector<SfzVoice> voices;
+    std::list<SfzVoice> voices;
     std::vector<File> includedFiles;
     std::vector<int> newGroups;
     CCValueArray ccState;

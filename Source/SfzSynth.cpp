@@ -25,15 +25,13 @@
 
 SfzSynth::SfzSynth()
 {
-	loadingThread.startThread(8);
 	resetMidiState();
 	initalizeVoices();
 }
 
 SfzSynth::~SfzSynth()
 {
-	bool threadStopped = loadingThread.stopThread(1000);
-	jassert(threadStopped);
+
 }
 
 std::string removeComment(const std::string& line)
@@ -55,7 +53,7 @@ void SfzSynth::initalizeVoices(int numVoices)
 {
 	for (int i = 0; i < config::numVoices; ++i)
 	{
-		auto & voice = voices.emplace_back(loadingThread, ccState);
+		auto & voice = voices.emplace_back(fileLoadingPool, ccState);
 		voice.prepareToPlay(sampleRate, samplesPerBlock);
 	}
 }
