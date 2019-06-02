@@ -42,19 +42,20 @@ public:
     ~SfzVoice();
     
     void startVoice(SfzRegion& newRegion, const MidiMessage& msg, int sampleDelay);
-    void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
     void prepareToPlay(double sampleRate, int samplesPerBlock);
+    void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
     void processMidi(MidiMessage& msg, int timestamp);
-    
-    void applyAmplitudeEnvelope(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
+
     bool checkOffGroup(uint32_t group, int timestamp);
     void reset();
 
     bool isFree() const { return state == SfzVoiceState::idle; }
     bool isPlaying() const { return state != SfzVoiceState::idle; }
+
     std::optional<MidiMessage> getTriggeringMessage() const;
 
 private:
+    void fillBuffer(AudioBuffer<float>& buffer, int startSample, int numSamples);
     ThreadPool& fileLoadingPool;
     const CCValueArray& ccState;
 
@@ -69,11 +70,12 @@ private:
 
     // Message and region that activated the note
     MidiMessage triggeringMessage;
-    SfzRegion * region { nullptr };
+    SfzRegion* region { nullptr };
+    std::shared_ptr<AudioBuffer<float>> preloadedData;
+    std::unique_ptr<AudioFormatReader> reader { nullptr };
 
-    // TODO : sustain/sostenuto logic
+    // Sustain logic
     bool noteIsOff { true };
-    bool sustainUp { true };
 
     // Block configuration
     int samplesPerBlock { config::defaultSamplesPerBlock };
@@ -99,7 +101,6 @@ private:
     uint32_t loopCount { 1 };
     
     uint32_t localTime { 0 };
-    void incrementTime(int numSamples);
 
     // Resamplers ; these need to be in shared pointers because we store the voices in a vector and they're not copy constructible
     // Not very logical since their ownership is not shared, but anyway...
@@ -109,10 +110,8 @@ private:
     void release(int timestamp, bool useFastRelease = false);
     void resetResamplers();
     int resampleStream(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamplesInput, AudioBuffer<float>& outputBuffer, int startSampleOutput, int numSamplesOutput);
+    int readFromSource(AudioBuffer<float>& buffer, int startSample, int numSamples, uint32_t positionInFile, bool canBlock = true);
     JobStatus runJob() override;
-    void applyPanEnvelope(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamples);
-    void applyVolumeEnvelope(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamples);
-
 
     JUCE_LEAK_DETECTOR(SfzVoice)
 };

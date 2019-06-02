@@ -57,7 +57,7 @@ private:
     std::string parseInclude(const std::string& line);
     std::string readSfzFile(const juce::File &file);
     std::string expandDefines(const std::string& str);
-    SfzFilePool openFiles;
+    SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
     // TODO: transform to list

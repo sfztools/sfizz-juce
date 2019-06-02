@@ -36,14 +36,13 @@
 struct SfzRegion
 {
     SfzRegion() = delete;
-    SfzRegion(const File& root, SfzFilePool& openFilePool);
+    SfzRegion(const File& root, SfzFilePool& filePool);
     void parseOpcode(const SfzOpcode& opcode);
     String stringDescription() const;
     bool checkMidiConditions(const MidiMessage& msg) const;
     void updateSwitches(const MidiMessage& msg);
     bool appliesTo(const MidiMessage& msg, float randValue) const;
     bool prepare();
-    int readFromSource(AudioBuffer<float>& buffer, int startSample, int numSamples, int64 positionInFile);
     bool isStereo() const;
     float velocityGaindB(int8 velocity) const;
     double computeBasePitchVariation(const MidiMessage& msg) const
@@ -66,7 +65,6 @@ struct SfzRegion
             baseGaindB += velocityGaindB(lastNoteVelocities[msg.getNoteNumber()]);
         return Decibels::decibelsToGain(baseGaindB);
     }
-    std::shared_ptr<AudioBuffer<float>> getPreloadedData() const { return preloadedData; }
     bool isRelease() const { return trigger == SfzTrigger::release || trigger == SfzTrigger::release_key; }
     bool isSwitchedOn() const;
 
@@ -145,17 +143,19 @@ struct SfzRegion
     SfzEnvelopeGeneratorDescription filterEG;
 
     double sampleRate { config::defaultSampleRate };
-    int activeVoices { 0 }; 
+    int numChannels { 1 };
     // TODO : Transform regions to list and put this as atomic
+    int activeVoices { 0 }; 
 
     std::vector<SfzOpcode> unknownOpcodes;
+    std::shared_ptr<AudioBuffer<float>> preloadedData;
 private:
     bool prepared { false };
     File rootDirectory { File::getCurrentWorkingDirectory() };
+    
     // File information
-    SfzFilePool& openFiles;
-    std::shared_ptr<AudioFormatReader> reader;
-    std::shared_ptr<AudioBuffer<float>> preloadedData;
+    SfzFilePool& filePool;
+
     // Activation logics
     bool keySwitched { true };
     bool previousKeySwitched { true };

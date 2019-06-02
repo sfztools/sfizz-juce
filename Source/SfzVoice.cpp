@@ -130,37 +130,16 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
 
     auto preloadedData = region->getPreloadedData();
     const auto preloadedDataSize = preloadedData->getNumSamples();
-    if (initialDelay < fifo->getFreeSpace())
+
     {
-        {
-            AbstractFifo::ScopedWrite writer (*fifo, initialDelay);
-        }            
-        initialDelay = 0;
-
-        const auto samplesToFill = (int)jmin( (uint32_t)fifo->getFreeSpace(), preloadedDataSize - totalOffset);
-        const auto requiredInputs = static_cast<int>(std::ceil(speedRatio * samplesToFill * pitchRatio));
-        // If we have less preloaded samples than required, we might be in trouble....
-        // jassert(requiredInputs <= preloadedDataSize - (int)totalOffset);
-        // Resample the preloaded data and fill the buffer
-        {
-            int consumedSamples { 0 };
-            AbstractFifo::ScopedWrite writer (*fifo, samplesToFill);
-            sourcePosition += resampleStream(*preloadedData, (int)sourcePosition, preloadedDataSize - (int)sourcePosition, buffer, writer.startIndex1, writer.blockSize1);
-            sourcePosition += resampleStream(*preloadedData, (int)sourcePosition, preloadedDataSize - (int)sourcePosition, buffer, writer.startIndex2, writer.blockSize2);
-        }
-
-        // We may already have reached the end of a sample
-        if (sourcePosition == region->sampleEnd && (region->loopMode == SfzLoopMode::one_shot || region->loopMode == SfzLoopMode::no_loop))
-        {
-            release(fifo->getNumReady());
-        }
+        AbstractFifo::ScopedWrite writer (*fifo, fifo->getFreeSpace());
+        initialDelay -= writer.blockSize1 + writer.blockSize2;
     }
-    else // We have only zeros since the initial delay is larger than the size of the fifo ; the background thread will fill the remaining delay
+
     {
-        {
-            AbstractFifo::ScopedWrite writer (*fifo, fifo->getFreeSpace());
-            initialDelay -= writer.blockSize1 + writer.blockSize2;
-        }
+        const auto samplesToFill = (int)jmin( (uint32_t)fifo->getFreeSpace(), preloadedDataSize - totalOffset);
+        AbstractFifo::ScopedWrite writer (*fifo, samplesToFill);
+        initialDelay -= writer.blockSize1 + writer.blockSize2;
     }
 
     // Schedule a callback in the background thread
@@ -217,7 +196,6 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
         const auto samplesLeft = region->sampleEnd - tempPosition;
         const auto samplesLeftInLoop = region->loopRange.getEnd() - tempPosition;
         const auto numSamplesToRead = (int)jmin(samplesLeft, samplesLeftInLoop, (int64)(requiredInputs - filledInputs));        
-        auto readInputs = region->readFromSource(tempBuffer, filledInputs, numSamplesToRead, tempPosition);
         filledInputs += readInputs;
         tempPosition += readInputs;
 
@@ -345,12 +323,6 @@ void SfzVoice::processMidi(MidiMessage& msg, int timestamp)
     }
 }
 
-void SfzVoice::applyAmplitudeEnvelope(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
-{
-    for (int chanIdx = 0; chanIdx < outputBuffer.getNumChannels(); ++chanIdx)
-        outputBuffer.applyGain(chanIdx, startSample, numSamples, baseGain);
-}
-
 bool SfzVoice::checkOffGroup(uint32_t group, int timestamp)
 {
     if (region != nullptr && region->offBy && *region->offBy == group)
@@ -362,26 +334,84 @@ bool SfzVoice::checkOffGroup(uint32_t group, int timestamp)
     return false;
 }
 
+void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
+{
+    if (region->sample == "*sine")
+    {
+        const auto frequency = MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(region->pitchKeycenter) * pitchRatio;
+        auto time = localTime;
+        const auto endSample = startSample + numSamples;
+
+        for(int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
+        {
+            const float sampleValue = static_cast<float>(std::sin(frequency * time / sampleRate));
+            for (int chanIdx = 0; chanIdx < config::numChannels; chanIdx++)
+                buffer.setSample(chanIdx, sampleIdx, sampleValue);
+            
+            time++;
+        }
+    }
+    else
+    {
+        int start1, size1, start2, size2;
+        fifo->prepareToRead(fifo->getNumReady(), start1, size1, start2, size2);
+        int fifoIdx { start1 };
+        int availableSamples { size1 };
+        int wrapAround { start1 + size1 - start2 };
+        int endPoint = start2 + size2;
+        int consumedSamples { 0 };
+
+        // Sample reading and pitch correction
+        for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
+        {
+            auto* leftIn = buffer.getReadPointer(0, fifoIdx);
+            auto* rightIn = buffer.getReadPointer(1, fifoIdx);
+            auto* leftOut = outputBuffer.getWritePointer(0, sampleIdx);
+            auto* rightOut = outputBuffer.getWritePointer(1, sampleIdx);
+            resamplers[0]->process(pitchRatio * speedRatio, leftIn, leftOut, 1, availableSamples, wrapAround);
+            int samplesRead = resamplers[1]->process(pitchRatio * speedRatio, rightIn, rightOut, 1, availableSamples, wrapAround);
+            
+            fifoIdx += samplesRead;
+            availableSamples -= samplesRead;
+            consumedSamples += samplesRead;
+            if (availableSamples == 0)
+            {
+                if (fifoIdx == endPoint || size2 == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    fifoIdx = start2;
+                    availableSamples = size2;
+                    wrapAround = 0;
+                }
+            }
+        }
+
+        fifo->finishedRead(consumedSamples);
+    }
+}
+
 void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
 {
     outputBuffer.clear(startSample, numSamples);
+    
     if (!isPlaying())
         return;
-    
-    {
-        AbstractFifo::ScopedRead reader { *fifo, numSamples };
-        copyBuffers(buffer, reader.startIndex1, outputBuffer, startSample, reader.blockSize1);
-        copyBuffers(buffer, reader.startIndex2, outputBuffer, startSample + reader.blockSize1, reader.blockSize2);
-    }
 
-    for (int sampleIdx = 0; sampleIdx < numSamples; sampleIdx++)
+    if (region == nullptr)
+        return;
+    
+    fillBuffer(outputBuffer, startSample, numSamples);
+
+    // Amplitude envelopes
+    for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
     {
         float totalGain { baseGain };
         float& left { *outputBuffer.getWritePointer(0, sampleIdx) };
         float& right { *outputBuffer.getWritePointer(1, sampleIdx) };
-
-        float pan = panEnvelope.getNextValue();
-        applyPanToSample(pan, left, right);
+        applyPanToSample(panEnvelope.getNextValue(), left, right);
         applyWidthAndPositionToSample(widthEnvelope.getNextValue(), positionEnvelope.getNextValue(), left, right);
 
         // Apply a total gain
@@ -431,13 +461,44 @@ int SfzVoice::resampleStream(const AudioBuffer<float>& bufferToResample, int sta
     return consumedSamples;
 }
 
+int SfzVoice::readFromSource(AudioBuffer<float>& buffer, int startSample, int numSamples, uint32_t positionInFile, bool canBlock)
+{
+    if (region == nullptr)
+        return 0;
+
+    buffer.clear(startSample, numSamples);
+
+    if (region->sample.startsWithChar('*'))
+    {
+        if (region->sample == "*silence")
+            return numSamples;
+        
+        if (region->sample == "*sine")
+        {
+            const auto frequency = MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(region->pitchKeycenter) * pitchRatio;
+            const auto endSample = startSample + numSamples;
+
+            for(int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
+            {
+                const float sampleValue = static_cast<float>(std::sin(frequency * positionInFile / sampleRate));
+                for (int chanIdx = 0; chanIdx < config::numChannels; chanIdx++)
+                    buffer.setSample(chanIdx, sampleIdx, sampleValue);
+                
+                positionInFile++;
+            }
+
+            return numSamples;
+        }
+    }
+    
+    if (preloadedData == nullptr && !canBlock)
+        return 0;
+    
+    
+}
+
 void SfzVoice::resetResamplers()
 {
     for (auto& resampler: resamplers)
         resampler->reset();
-}
-
-void SfzVoice::incrementTime(int numSamples)
-{
-    localTime += numSamples;
 }

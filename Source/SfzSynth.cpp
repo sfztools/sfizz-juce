@@ -132,15 +132,17 @@ std::string SfzSynth::expandDefines(const std::string& str)
 
 bool SfzSynth::loadSfzFile(const juce::File &file)
 {
-	rootDirectory = file.getParentDirectory();
+	clear();
+	if (!file.existsAsFile())
+		return false;
+	
+	filePool.setRootDirectory(file.getParentDirectory());
 	auto fullString = readSfzFile(file);
 	fullString = expandDefines(fullString);
-	auto rootDirectory = file.getParentDirectory();
 
 	auto headerIterator = std::sregex_iterator(fullString.begin(), fullString.end(), SfzRegexes::headers);
 	auto regexEnd = std::sregex_iterator();
 	uint32_t maxGroup { 1 };
-	clear();
 	std::optional<int> defaultSwitch {};
 
 	std::vector<SfzOpcode> globalMembers;
@@ -154,7 +156,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	bool hasControl = false;
 	
 	auto buildRegion = [&, this]() {
-		regions.emplace_back(rootDirectory, openFiles);
+		regions.emplace_back(rootDirectory, filePool);
 		auto& region = regions.back(); // For some reason using auto& region up there does not work?!
 		// Successively apply the opcodes alread read to the parameter structure
 		for (auto& opcode: globalMembers)
@@ -264,8 +266,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 								ccNames.emplace_back(*lastOpcode.parameter, lastOpcode.value);
 							break;
 						case hash("default_path"):
-							if (rootDirectory.getChildFile(lastOpcode.value).isDirectory())
-								rootDirectory = rootDirectory.getChildFile(lastOpcode.value);
+							filePool.setRootDirectory(File(lastOpcode.value));
 							break;
 						default:
 							DBG("Unknown/unsupported opcode in <control> header: " << lastOpcode.opcode);
@@ -343,9 +344,9 @@ void SfzSynth::clear()
 	regions.clear();
 	voices.clear();
 	ccNames.clear();
+	filePool.clear();
 	initalizeVoices();
 	resetMidiState();
-	openFiles.clear();
 }
 
 void SfzSynth::resetMidiState()
