@@ -47,6 +47,8 @@ public:
     StringArray getUnknownOpcodes() const;
     StringArray getCCLabels() const;
     const SfzRegion* getRegionView(int num) const;
+
+    
 private:
     File rootDirectory { File::getCurrentWorkingDirectory() };
     AudioFormatManager afManager;

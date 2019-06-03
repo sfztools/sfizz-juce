@@ -53,7 +53,7 @@ void SfzSynth::initalizeVoices(int numVoices)
 {
 	for (int i = 0; i < config::numVoices; ++i)
 	{
-		auto & voice = voices.emplace_back(fileLoadingPool, ccState);
+		auto & voice = voices.emplace_back(fileLoadingPool, filePool, ccState);
 		voice.prepareToPlay(sampleRate, samplesPerBlock);
 	}
 }
@@ -136,7 +136,8 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	if (!file.existsAsFile())
 		return false;
 	
-	filePool.setRootDirectory(file.getParentDirectory());
+	rootDirectory = file.getParentDirectory();
+	filePool.setRootDirectory(rootDirectory);
 	auto fullString = readSfzFile(file);
 	fullString = expandDefines(fullString);
 

@@ -36,7 +36,6 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     // Sound source: sample playback
     case hash("sample"): 
         sample = String(opcode.value).trim().replaceCharacter('\\', '/');
-        filePool.preloadAndSetMetadata(*this, sample);
     break;
     case hash("delay"): setValueFromOpcode(opcode, delay, SfzDefault::delayRange); break;
     case hash("delay_random"): setValueFromOpcode(opcode, delayRandom, SfzDefault::delayRange); break;
@@ -349,6 +348,7 @@ bool SfzRegion::appliesTo(const MidiMessage& msg, float randValue) const
 {
     // You have to call prepare before trying to activate the region
     jassert(prepared);
+
     if (!prepared)
         return false;
     
@@ -382,6 +382,29 @@ bool SfzRegion::appliesTo(const MidiMessage& msg, float randValue) const
 bool SfzRegion::prepare()
 {
     prepared = false;
+
+    if (!isGenerator())
+    {
+        filePool.preload(sample, offset + offsetRandom);
+        auto reader = filePool.createReaderFor(sample);
+        if (reader == nullptr)
+        {
+            DBG("[Prepare region] Error creating reader for " << sample);
+            return false;
+        }
+
+        sampleRate = reader->sampleRate;
+        if (sampleEnd == SfzDefault::sampleEndRange.getEnd())
+            sampleEnd = static_cast<uint32_t>(reader->lengthInSamples);
+        numChannels = reader->numChannels;
+
+        if (reader->metadataValues.containsKey("Loop0Start") && reader->metadataValues.containsKey("Loop0End") && loopRange == SfzDefault::loopRange)
+        {
+            // DBG("Looping between " << reader->metadataValues["Loop0Start"] << " and " << reader->metadataValues["Loop0End"]);
+            loopRange.setStart(static_cast<uint32_t>(reader->metadataValues["Loop0Start"].getLargeIntValue()));
+            loopRange.setEnd(static_cast<uint32_t>(reader->metadataValues["Loop0End"].getLargeIntValue()));
+        }
+    }
 
     if (sampleCount)
         loopMode = SfzLoopMode::one_shot;

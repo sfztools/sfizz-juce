@@ -38,7 +38,7 @@ class SfzVoice: public ThreadPoolJob
 {
 public:
     SfzVoice() = delete;
-    SfzVoice(ThreadPool& fileLoadingPool, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
+    SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
     ~SfzVoice();
     
     void startVoice(SfzRegion& newRegion, const MidiMessage& msg, int sampleDelay);
@@ -57,6 +57,7 @@ public:
 private:
     void fillBuffer(AudioBuffer<float>& buffer, int startSample, int numSamples);
     ThreadPool& fileLoadingPool;
+    SfzFilePool& filePool;
     const CCValueArray& ccState;
 
     // Fifo/Circular buffer
@@ -64,14 +65,9 @@ private:
     // TODO : No need for shared pointers anymore
     std::shared_ptr<AbstractFifo> fifo;
 
-    // Temporary buffers
-    AudioBuffer<float> tempBuffer;
-    AudioBuffer<float> crossfadeBuffer { config::numChannels, config::loopCrossfadeLength };
-
     // Message and region that activated the note
     MidiMessage triggeringMessage;
     SfzRegion* region { nullptr };
-    std::shared_ptr<AudioBuffer<float>> preloadedData;
     std::unique_ptr<AudioFormatReader> reader { nullptr };
 
     // Sustain logic
@@ -109,8 +105,6 @@ private:
 
     void release(int timestamp, bool useFastRelease = false);
     void resetResamplers();
-    int resampleStream(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamplesInput, AudioBuffer<float>& outputBuffer, int startSampleOutput, int numSamplesOutput);
-    int readFromSource(AudioBuffer<float>& buffer, int startSample, int numSamples, uint32_t positionInFile, bool canBlock = true);
     JobStatus runJob() override;
 
     JUCE_LEAK_DETECTOR(SfzVoice)

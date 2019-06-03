@@ -5,7 +5,7 @@ using namespace Catch::literals;
 
 TEST_CASE("Parsing opcodes", "Region tests")
 {
-    SfzFilePool openFiles;
+    SfzFilePool openFiles { File::getCurrentWorkingDirectory() };
     SfzRegion region { File::getCurrentWorkingDirectory(), openFiles };
     SECTION("sample")
     {

@@ -67,6 +67,7 @@ struct SfzRegion
     }
     bool isRelease() const { return trigger == SfzTrigger::release || trigger == SfzTrigger::release_key; }
     bool isSwitchedOn() const;
+    bool isGenerator() { return sample.startsWithChar('*'); }
 
     // Sound source: sample playback
     String sample {}; // Sample

@@ -5,8 +5,9 @@ using namespace Catch::literals;
 
 TEST_CASE("Region activation", "Region tests")
 {
-    SfzFilePool openFiles;
+    SfzFilePool openFiles { File::getCurrentWorkingDirectory() };
     SfzRegion region { File::getCurrentWorkingDirectory(), openFiles };
+    region.parseOpcode({ "sample", "*sine" });
     SECTION("Basic state")
     {
         REQUIRE( region.prepare() );

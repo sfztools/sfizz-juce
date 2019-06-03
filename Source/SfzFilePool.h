@@ -95,8 +95,8 @@ public:
     : rootDirectory(rootDirectory)
     {
         audioFormatManager.registerBasicFormats();
-        audioFormatManager.registerFormat(new FlacAudioFormat(), false);
-        audioFormatManager.registerFormat(new OggVorbisAudioFormat(), false);
+        // audioFormatManager.registerFormat(new FlacAudioFormat(), false);
+        // audioFormatManager.registerFormat(new OggVorbisAudioFormat(), false);
     }
 
     void setRootDirectory(const File& rootDirectory)
@@ -105,48 +105,56 @@ public:
             this->rootDirectory = rootDirectory;
     }
 
-
     // TODO: The sfz synth will update the regions at the end and preload the files, checking the offsets w.r.t. the preload size.
     // In the voice, update the file reading to prioritize the preloaded data if available.
-    void preloadAndSetMetadata(SfzRegion& region, const String& sampleName, int numSamples = config::preloadSize)
+    void preload(const String& sampleName, int offset = 0, int numSamples = config::preloadSize)
     {
         // TODO: if numSamples is negative preload everthing?
         // Can't really preload 0 samples now?
         jassert(numSamples > 0);
         
-        if (sampleName == "*silence" || sampleName == "*sine")
+        if (sampleName.startsWith("*"))
             return;
 
-        File sampleFile { sampleName };
-        auto reader = std::unique_ptr<AudioFormatReader>(audioFormatManager.createReaderFor(sampleFile));
-        
+        auto reader = createReaderFor(sampleName);
         if (reader == nullptr)
         {
             DBG("Error creating reader for " << sampleName);
             return;
         }
-
-        region.sampleRate = reader->sampleRate;
-        if (region.sampleEnd == SfzDefault::sampleEndRange.getEnd())
-            region.sampleEnd = static_cast<uint32_t>(reader->lengthInSamples);
-        region.numChannels = reader->numChannels;
-
-        if (reader->metadataValues.containsKey("Loop0Start") && reader->metadataValues.containsKey("Loop0End"))
+        const int actualNumSamples = (int) jmin( (int64)numSamples + offset, reader->lengthInSamples);
+        auto alreadyPreloaded = preloadedData.find(sampleName);
+        if (alreadyPreloaded == end(preloadedData) || alreadyPreloaded->second->getNumSamples() < actualNumSamples)
         {
-            // DBG("Looping between " << reader->metadataValues["Loop0Start"] << " and " << reader->metadataValues["Loop0End"]);
-            region.loopRange.setStart(static_cast<uint32_t>(reader->metadataValues["Loop0Start"].getLargeIntValue()));
-            region.loopRange.setEnd(static_cast<uint32_t>(reader->metadataValues["Loop0End"].getLargeIntValue()));
+            preloadedData[sampleName] = std::make_shared<AudioBuffer<float>>(config::numChannels, actualNumSamples);
+            preloadedData[sampleName]->clear();
+            reader->read(preloadedData[sampleName].get(), 0, actualNumSamples, 0, true, true);
         }
+    }
 
-        const int actualNumSamples = (int)jmin((int64)numSamples, (int64)region.sampleEnd, (int64)region.loopRange.getEnd());
-        preloadedData[sampleName] = std::make_shared<AudioBuffer<float>>(config::numChannels, actualNumSamples);
-        preloadedData[sampleName]->clear();
-        reader->read(preloadedData[sampleName].get(), 0, actualNumSamples, 0, true, true);
+    std::unique_ptr<AudioFormatReader> createReaderFor(const String& sampleName)
+    {
+        File sampleFile { rootDirectory.getChildFile(sampleName) };
+        if (!sampleFile.existsAsFile())
+        {
+            DBG("Can't find file " << sampleName );
+            return {};
+        }
+        return std::unique_ptr<AudioFormatReader>(audioFormatManager.createReaderFor(sampleFile));
     }
 
     void clear()
     {
         preloadedData.clear();
+    }
+
+    std::shared_ptr<AudioBuffer<float>> getPreloadedData(const String& sampleName)
+    {
+        auto data = preloadedData.find(sampleName);
+        if (data != end(preloadedData))
+            return data->second;
+        
+        return {};
     }
 
 private:

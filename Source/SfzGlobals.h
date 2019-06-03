@@ -43,6 +43,8 @@ namespace config
     inline constexpr int loopCrossfadeLength { 64 };
     inline constexpr float virtuallyZero { 0.00005f };
     inline constexpr double fastReleaseDuration { 0.01 };
+    inline constexpr int leftChan { 0 };
+    inline constexpr int rightChan { 0 };
 }
 
 namespace SfzRegexes
