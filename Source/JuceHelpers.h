@@ -90,7 +90,8 @@ struct TimestampComparison
 
 inline void copyBuffers(const AudioBuffer<float>& input, int startInput, AudioBuffer<float>& output, int startOutput, int numSamples)
 {
-    for (int chanIdx = 0; chanIdx < input.getNumChannels(); ++chanIdx)
+    int numChannels = std::min(input.getNumChannels(), output.getNumChannels());
+    for (int chanIdx = 0; chanIdx < numChannels; ++chanIdx)
         output.copyFrom(chanIdx, startOutput, input, chanIdx, startInput, numSamples);
 }
 

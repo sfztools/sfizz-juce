@@ -30,18 +30,21 @@ using CCNamePair = std::pair<uint8_t, String>;
 
 namespace config
 {
-    inline constexpr int bufferSize { 4096 };
+    inline constexpr int bufferSize { 8192 };
     inline constexpr double defaultSampleRate { 48000 };
     inline constexpr int defaultSamplesPerBlock { 1024 };
-    inline constexpr int preloadSize { bufferSize * 2 };
+    inline constexpr int preloadSize { bufferSize };
     inline constexpr int numChannels { 2 };
     inline constexpr int numVoices { 128 };
     inline constexpr int maxGroups { 32 };
+    inline constexpr int numLoadingThreads { 4 };
     inline constexpr int midiFeedbackCapacity { numVoices };
     inline constexpr int centPerSemitone { 100 };
     inline constexpr int loopCrossfadeLength { 64 };
     inline constexpr float virtuallyZero { 0.00005f };
     inline constexpr double fastReleaseDuration { 0.01 };
+    inline constexpr int leftChan { 0 };
+    inline constexpr int rightChan { 0 };
 }
 
 namespace SfzRegexes

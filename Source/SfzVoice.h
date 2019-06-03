@@ -34,45 +34,44 @@ enum class SfzVoiceState
     release
 };
 
-class SfzVoice: public TimeSliceClient 
+class SfzVoice: public ThreadPoolJob 
 {
 public:
     SfzVoice() = delete;
-    SfzVoice(TimeSliceThread& readAheadThread, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
+    SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
     ~SfzVoice();
     
     void startVoice(SfzRegion& newRegion, const MidiMessage& msg, int sampleDelay);
-    void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
     void prepareToPlay(double sampleRate, int samplesPerBlock);
+    void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
     void processMidi(MidiMessage& msg, int timestamp);
-    
-    void applyAmplitudeEnvelope(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
+
     bool checkOffGroup(uint32_t group, int timestamp);
     void reset();
 
     bool isFree() const { return state == SfzVoiceState::idle; }
     bool isPlaying() const { return state != SfzVoiceState::idle; }
+
     std::optional<MidiMessage> getTriggeringMessage() const;
 
 private:
-    TimeSliceThread& readAheadThread;
+    void fillBuffer(AudioBuffer<float>& buffer, int startSample, int numSamples);
+    ThreadPool& fileLoadingPool;
+    SfzFilePool& filePool;
     const CCValueArray& ccState;
 
     // Fifo/Circular buffer
-    mutable AudioBuffer<float> buffer;
-    std::shared_ptr<AbstractFifo> fifo;
-
-    // Temporary buffers
-    AudioBuffer<float> tempBuffer;
-    AudioBuffer<float> crossfadeBuffer { config::numChannels, config::loopCrossfadeLength };
+    AudioBuffer<float> buffer;
+    // TODO : No need for shared pointers anymore
+    AbstractFifo fifo;
 
     // Message and region that activated the note
     MidiMessage triggeringMessage;
-    SfzRegion * region { nullptr };
+    SfzRegion* region { nullptr };
+    std::unique_ptr<AudioFormatReader> reader { nullptr };
 
-    // TODO : sustain/sostenuto logic
+    // Sustain logic
     bool noteIsOff { true };
-    bool sustainUp { true };
 
     // Block configuration
     int samplesPerBlock { config::defaultSamplesPerBlock };
@@ -98,19 +97,16 @@ private:
     uint32_t loopCount { 1 };
     
     uint32_t localTime { 0 };
-    void incrementTime(int numSamples);
 
     // Resamplers ; these need to be in shared pointers because we store the voices in a vector and they're not copy constructible
     // Not very logical since their ownership is not shared, but anyway...
-    std::array<std::shared_ptr<LagrangeInterpolator>, config::numChannels> resamplers;
+    // TODO : No need for shared pointers anymore
+    LagrangeInterpolator leftResampler;
+    LagrangeInterpolator rightResampler;
 
     void release(int timestamp, bool useFastRelease = false);
     void resetResamplers();
-    int resampleStream(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamplesInput, AudioBuffer<float>& outputBuffer, int startSampleOutput, int numSamplesOutput);
-    int useTimeSlice() override;
-    void applyPanEnvelope(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamples);
-    void applyVolumeEnvelope(const AudioBuffer<float>& bufferToResample, int startSampleInput, int numSamples);
-
+    JobStatus runJob() override;
 
     JUCE_LEAK_DETECTOR(SfzVoice)
 };

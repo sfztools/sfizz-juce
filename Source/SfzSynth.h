@@ -25,6 +25,8 @@
 #include "SfzGlobals.h"
 #include "SfzRegion.h"
 #include "SfzVoice.h"
+#include <vector>
+#include <list>
 #include <algorithm>
 #include "SfzFilePool.h"
 
@@ -47,21 +49,24 @@ public:
     StringArray getUnknownOpcodes() const;
     StringArray getCCLabels() const;
     const SfzRegion* getRegionView(int num) const;
+
+    
 private:
     File rootDirectory { File::getCurrentWorkingDirectory() };
     AudioFormatManager afManager;
     AudioBuffer<float> tempBuffer;
     int numGroups { 0 };
     int numMasters { 0 };
-    TimeSliceThread loadingThread { "Background loading thread" };
+    ThreadPool fileLoadingPool { config::numLoadingThreads };
     std::string parseInclude(const std::string& line);
     std::string readSfzFile(const juce::File &file);
     std::string expandDefines(const std::string& str);
-    SfzFilePool openFiles;
+    SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
-    std::vector<SfzRegion> regions;
-    std::vector<SfzVoice> voices;
+    // TODO: transform to list
+    std::list<SfzRegion> regions;
+    std::list<SfzVoice> voices;
     std::vector<File> includedFiles;
     std::vector<int> newGroups;
     CCValueArray ccState;

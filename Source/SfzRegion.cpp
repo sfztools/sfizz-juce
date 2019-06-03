@@ -21,8 +21,8 @@
 
 #include "SfzRegion.h"
 
-SfzRegion::SfzRegion(const File& root, SfzFilePool& openFilePool)
-: rootDirectory(root), openFiles(openFilePool)
+SfzRegion::SfzRegion(const File& root, SfzFilePool& filePool)
+: rootDirectory(root), filePool(filePool)
 {
     for (auto& ccSwitch: ccSwitched)
         ccSwitch = true;
@@ -35,7 +35,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     {
     // Sound source: sample playback
     case hash("sample"): 
-        sample = String(opcode.value).replaceCharacter('\\', '/');
+        sample = String(opcode.value).trim().replaceCharacter('\\', '/');
     break;
     case hash("delay"): setValueFromOpcode(opcode, delay, SfzDefault::delayRange); break;
     case hash("delay_random"): setValueFromOpcode(opcode, delayRandom, SfzDefault::delayRange); break;
@@ -348,6 +348,7 @@ bool SfzRegion::appliesTo(const MidiMessage& msg, float randValue) const
 {
     // You have to call prepare before trying to activate the region
     jassert(prepared);
+
     if (!prepared)
         return false;
     
@@ -382,6 +383,29 @@ bool SfzRegion::prepare()
 {
     prepared = false;
 
+    if (!isGenerator())
+    {
+        filePool.preload(sample, offset + offsetRandom);
+        auto reader = filePool.createReaderFor(sample);
+        if (reader == nullptr)
+        {
+            DBG("[Prepare region] Error creating reader for " << sample);
+            return false;
+        }
+
+        sampleRate = reader->sampleRate;
+        if (sampleEnd == SfzDefault::sampleEndRange.getEnd())
+            sampleEnd = static_cast<uint32_t>(reader->lengthInSamples);
+        numChannels = reader->numChannels;
+
+        if (reader->metadataValues.containsKey("Loop0Start") && reader->metadataValues.containsKey("Loop0End") && loopRange == SfzDefault::loopRange)
+        {
+            // DBG("Looping between " << reader->metadataValues["Loop0Start"] << " and " << reader->metadataValues["Loop0End"]);
+            loopRange.setStart(static_cast<uint32_t>(reader->metadataValues["Loop0Start"].getLargeIntValue()));
+            loopRange.setEnd(static_cast<uint32_t>(reader->metadataValues["Loop0End"].getLargeIntValue()));
+        }
+    }
+
     if (sampleCount)
         loopMode = SfzLoopMode::one_shot;
 
@@ -394,11 +418,6 @@ bool SfzRegion::prepare()
             vel = 0;
     }
 
-    if (!setupSource())
-    {
-        DBG("Source could not be set for " << sample);
-        return false;
-    }
     addEndpointsToVelocityCurve();
     checkInitialConditions();
     prepared = true;
@@ -425,70 +444,6 @@ void SfzRegion::addEndpointsToVelocityCurve()
                 velocityPoints.push_back(std::make_pair<int, float>(0, 1.0f));
         }        
     }
-}
-
-bool SfzRegion::setupSource()
-{
-    if (sample == "*silence" || sample == "*sine")
-    {
-        preloadedData = std::make_shared<AudioBuffer<float>>(config::numChannels, config::preloadSize);
-        preloadedData->clear();
-        readFromSource(*preloadedData, 0, config::preloadSize, 0);
-        return true;
-    }
-
-    auto sampleFile = rootDirectory.getChildFile(sample);
-    auto sfzFile = openFiles.preloadFile(sampleFile, 0, config::preloadSize);
-    if (sfzFile.reader != nullptr)
-    {
-        reader = sfzFile.reader;
-        preloadedData = sfzFile.preloadedBuffer;
-        sampleRate = reader->sampleRate;
-        sampleEnd = static_cast<uint32_t>(reader->lengthInSamples);
-        if (reader->metadataValues.containsKey("Loop0Start") && reader->metadataValues.containsKey("Loop0End") && loopRange == SfzDefault::loopRange)
-        {
-            // DBG("Looping between " << reader->metadataValues["Loop0Start"] << " and " << reader->metadataValues["Loop0End"]);
-            loopRange.setStart(static_cast<uint32_t>(reader->metadataValues["Loop0Start"].getLargeIntValue()));
-            loopRange.setEnd(static_cast<uint32_t>(reader->metadataValues["Loop0End"].getLargeIntValue()));
-        }
-        
-        return true;
-    }
-
-    return false;
-}
-
-int SfzRegion::readFromSource(AudioBuffer<float>& buffer, int startSample, int numSamples, int64 positionInFile)
-{
-    jassert(numSamples >= 0);
-    buffer.clear(startSample, numSamples);
-    if (sample == "*silence")
-        return numSamples;
-
-    if (sample == "*sine")
-    {
-        const auto frequency = MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(pitchKeycenter);
-        for(int sampleIdx = startSample; sampleIdx < startSample + numSamples; sampleIdx++)
-        {
-            const float sampleValue = static_cast<float>(std::sin(frequency * positionInFile / sampleRate));
-            for (int chanIdx = 0; chanIdx < config::numChannels; chanIdx++)
-            {
-                buffer.setSample(chanIdx, sampleIdx, sampleValue);
-            }
-            positionInFile++;
-        }
-        return numSamples;
-    }
-    
-    if (reader != nullptr)
-    {
-        if (reader->lengthInSamples - positionInFile <= 0) return 0;
-        const int realNumSamples = (int)jmin(reader->lengthInSamples - positionInFile, (int64)numSamples);
-        reader->read(&buffer, startSample, realNumSamples, positionInFile, true, true);
-        return realNumSamples;
-    }
-
-    return 0;
 }
 
 void SfzRegion::checkInitialConditions()
@@ -526,10 +481,7 @@ void SfzRegion::checkInitialConditions()
 
 bool SfzRegion::isStereo() const
 {
-    if (reader != nullptr)
-        return reader->numChannels > 1;
-    else
-        return false;
+    return numChannels == 2;
 }
 
 float SfzRegion::velocityGaindB(int8 velocity) const
