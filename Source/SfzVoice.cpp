@@ -26,13 +26,10 @@ SfzVoice::SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCV
 , fileLoadingPool(fileLoadingPool)
 , filePool(filePool)
 , ccState(ccState)
-, fifo(std::make_shared<AbstractFifo>(bufferCapacity))
+, fifo(bufferCapacity)
 , buffer(config::numChannels, bufferCapacity)
 {
     buffer.clear();
-    for (auto& resampler: resamplers)
-        resampler = std::make_shared<LagrangeInterpolator>();
-    this->samplesPerBlock = samplesPerBlock;
 }
 
 SfzVoice::~SfzVoice()
@@ -117,7 +114,7 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
     // Write a short blank in the circular buffer that corresponds to the noteon delay
     {
         // The buffer should always be cleared at this point so we cheat :)
-        AbstractFifo::ScopedWrite writer (*fifo, sampleDelay);
+        AbstractFifo::ScopedWrite writer (fifo, sampleDelay);
     }
 
     // Now there's possibly an additional sample delay from the region opcodes
@@ -126,14 +123,14 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
         initialDelay += secondsToSamples(region->delay);
     if (region->delayRandom > 0)
         initialDelay += Random::getSystemRandom().nextInt(secondsToSamples(region->delayRandom));
-    if (initialDelay < fifo->getFreeSpace())
+    if (initialDelay < fifo.getFreeSpace())
     {
-        AbstractFifo::ScopedWrite writer (*fifo, initialDelay);
+        AbstractFifo::ScopedWrite writer (fifo, initialDelay);
         initialDelay = 0;
     }
     else
     {
-        AbstractFifo::ScopedWrite writer (*fifo, fifo->getFreeSpace());
+        AbstractFifo::ScopedWrite writer (fifo, fifo.getFreeSpace());
         initialDelay -= writer.blockSize1 + writer.blockSize2;
     }
 
@@ -142,10 +139,10 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
         return;
 
     const auto preloadedDataSize = preloadedData->getNumSamples();
-    const auto samplesToFill = (int)std::min( (uint32_t)fifo->getFreeSpace(), preloadedDataSize - totalOffset);
+    const auto samplesToFill = (int)std::min( (uint32_t)fifo.getFreeSpace(), preloadedDataSize - totalOffset);
 
     {
-        AbstractFifo::ScopedWrite writer (*fifo, samplesToFill);
+        AbstractFifo::ScopedWrite writer (fifo, samplesToFill);
         copyBuffers(*preloadedData, totalOffset, buffer, writer.startIndex1, writer.blockSize1);
         copyBuffers(*preloadedData, totalOffset + writer.blockSize1, buffer, writer.startIndex2, writer.blockSize2);
     }
@@ -198,11 +195,11 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
     // We need to delay the source still, so fill in the buffer with zeros some more
     if (initialDelay > 0)
     {
-        AbstractFifo::ScopedWrite writer (*fifo, fifo->getFreeSpace());
+        AbstractFifo::ScopedWrite writer (fifo, fifo.getFreeSpace());
         initialDelay -= writer.blockSize1 + writer.blockSize2;
     }
     
-    auto freeSpace = fifo->getFreeSpace();
+    auto freeSpace = fifo.getFreeSpace();
     // The buffer is full: nothing to do
     if (freeSpace == 0)
         return ThreadPoolJob::jobHasFinished;
@@ -218,7 +215,7 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
         const auto samplesLeftInLoop = region->loopRange.getEnd() - sourcePosition;
         const auto numSamplesToRead = (int)jmin(samplesLeft, samplesLeftInLoop, (int64)freeSpace);
         {
-            AbstractFifo::ScopedWrite writer (*fifo, numSamplesToRead);
+            AbstractFifo::ScopedWrite writer (fifo, numSamplesToRead);
             reader->read(&buffer, writer.startIndex1, writer.blockSize1, sourcePosition, true, true);
             sourcePosition += writer.blockSize1;
             reader->read(&buffer, writer.startIndex2, writer.blockSize2, sourcePosition, true, true);
@@ -242,7 +239,7 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
             else
             {
                 DBG("Sample " << region->sample << " end! Releasing...");
-                release(fifo->getNumReady());
+                release(fifo.getNumReady());
                 break;
             }
         }
@@ -345,7 +342,7 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
     else
     {
         int start1, size1, start2, size2;
-        fifo->prepareToRead(fifo->getNumReady(), start1, size1, start2, size2);
+        fifo.prepareToRead(fifo.getNumReady(), start1, size1, start2, size2);
         int fifoIdx { start1 };
         int availableSamples { size1 };
         int wrapAround { start1 + size1 - start2 };
@@ -359,13 +356,13 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
             auto* rightIn = buffer.getReadPointer(1, fifoIdx);
             auto* leftOut = outputBuffer.getWritePointer(0, sampleIdx);
             auto* rightOut = outputBuffer.getWritePointer(1, sampleIdx);
-            resamplers[0]->process(pitchRatio * speedRatio, leftIn, leftOut, 1, availableSamples, wrapAround);
-            int samplesRead = resamplers[1]->process(pitchRatio * speedRatio, rightIn, rightOut, 1, availableSamples, wrapAround);
+            leftResampler.process(pitchRatio * speedRatio, leftIn, leftOut, 1, availableSamples, wrapAround);
+            int samplesRead = rightResampler.process(pitchRatio * speedRatio, rightIn, rightOut, 1, availableSamples, wrapAround);
             
             fifoIdx += samplesRead;
             availableSamples -= samplesRead;
             consumedSamples += samplesRead;
-            if (availableSamples == 0)
+            if (availableSamples <= 0)
             {
                 if (fifoIdx == endPoint || size2 == 0)
                 {
@@ -373,14 +370,14 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
                 }
                 else
                 {
-                    fifoIdx = start2;
-                    availableSamples = size2;
+                    fifoIdx = start2 - availableSamples;
+                    availableSamples += size2;
                     wrapAround = 0;
                 }
             }
         }
 
-        fifo->finishedRead(consumedSamples);
+        fifo.finishedRead(consumedSamples);
     }
 }
 
@@ -430,7 +427,7 @@ void SfzVoice::reset()
     localTime = 0;
     resetResamplers();
     buffer.clear();
-    fifo->reset();
+    fifo.reset();
 }
 
 std::optional<MidiMessage> SfzVoice::getTriggeringMessage() const
@@ -443,6 +440,6 @@ std::optional<MidiMessage> SfzVoice::getTriggeringMessage() const
 
 void SfzVoice::resetResamplers()
 {
-    for (auto& resampler: resamplers)
-        resampler->reset();
+    leftResampler.reset();
+    rightResampler.reset();
 }

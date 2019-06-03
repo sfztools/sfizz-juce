@@ -25,6 +25,8 @@
 #include "SfzGlobals.h"
 #include "SfzRegion.h"
 #include "SfzVoice.h"
+#include <vector>
+#include <list>
 #include <algorithm>
 #include "SfzFilePool.h"
 
@@ -63,7 +65,7 @@ private:
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
     // TODO: transform to list
-    std::vector<SfzRegion> regions;
+    std::list<SfzRegion> regions;
     std::list<SfzVoice> voices;
     std::vector<File> includedFiles;
     std::vector<int> newGroups;

@@ -337,7 +337,10 @@ const SfzRegion* SfzSynth::getRegionView(int num) const
 	if (num >= getNumRegions())
 		return {};
 
-	return &regions.at(num);
+	auto regionIterator = regions.cbegin();
+	for (int i = 0; i < num; i++)
+		regionIterator++;
+	return &*regionIterator;
 }
 
 void SfzSynth::clear()
