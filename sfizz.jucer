@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="r0cNpL" name="sfizz" projectType="audioplug" jucerVersion="5.4.3"
-              cppLanguageStandard="latest" reportAppUsage="0">
+              cppLanguageStandard="latest" reportAppUsage="0" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn">
   <MAINGROUP id="R5AZRy" name="sfizz">
     <GROUP id="{B195BF29-7091-C3C3-5EDD-E4A6DE8FADE9}" name="Source">
       <FILE id="UkM4JT" name="JuceHelpers.h" compile="0" resource="0" file="Source/JuceHelpers.h"/>

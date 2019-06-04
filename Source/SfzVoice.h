@@ -66,7 +66,7 @@ private:
     AbstractFifo fifo;
 
     // Message and region that activated the note
-    MidiMessage triggeringMessage;
+    std::optional<MidiMessage> triggeringMessage;
     SfzRegion* region { nullptr };
     std::unique_ptr<AudioFormatReader> reader { nullptr };
 

@@ -95,8 +95,6 @@ public:
     : rootDirectory(rootDirectory)
     {
         audioFormatManager.registerBasicFormats();
-        // audioFormatManager.registerFormat(new FlacAudioFormat(), false);
-        // audioFormatManager.registerFormat(new OggVorbisAudioFormat(), false);
     }
 
     void setRootDirectory(const File& rootDirectory)
@@ -104,9 +102,7 @@ public:
         if (rootDirectory.isDirectory())
             this->rootDirectory = rootDirectory;
     }
-
-    // TODO: The sfz synth will update the regions at the end and preload the files, checking the offsets w.r.t. the preload size.
-    // In the voice, update the file reading to prioritize the preloaded data if available.
+    
     void preload(const String& sampleName, int offset = 0, int numSamples = config::preloadSize)
     {
         // TODO: if numSamples is negative preload everthing?

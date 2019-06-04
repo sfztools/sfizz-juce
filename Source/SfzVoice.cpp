@@ -163,7 +163,6 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
     if (state == SfzVoiceState::release && !amplitudeEGEnvelope.isSmoothing())
     {
         // Should be valid if not smoothing!!
-        // jassert(amplitudeEGEnvelope.getNextValue() <= config::virtuallyZero);
         DBG("Resetting the voice playing " << region->sample);
         reset();
         return ThreadPoolJob::jobHasFinished;
@@ -263,7 +262,7 @@ void SfzVoice::prepareToPlay(double sampleRate, int samplesPerBlock)
 
 void SfzVoice::processMidi(MidiMessage& msg, int timestamp)
 {
-    if (region == nullptr)
+    if (region == nullptr || !triggeringMessage)
         return;
 
     if (state == SfzVoiceState::idle)
@@ -271,7 +270,7 @@ void SfzVoice::processMidi(MidiMessage& msg, int timestamp)
     
     if (msg.isNoteOff() 
         && !noteIsOff
-        && msg.getNoteNumber() == triggeringMessage.getNoteNumber()
+        && msg.getNoteNumber() == triggeringMessage->getNoteNumber()
         && region->loopMode != SfzLoopMode::one_shot)
     {
         noteIsOff = true;
@@ -282,8 +281,8 @@ void SfzVoice::processMidi(MidiMessage& msg, int timestamp)
         auto ccIdx = msg.getControllerNumber();
         auto ccValue = msg.getControllerValue();
 
-        if (triggeringMessage.isController()
-            && triggeringMessage.getControllerNumber() == ccIdx
+        if (triggeringMessage->isController()
+            && triggeringMessage->getControllerNumber() == ccIdx
             && !withinRange(region->ccTriggers.get(ccIdx), ccValue))
         {
             noteIsOff = true;
@@ -422,6 +421,7 @@ void SfzVoice::reset()
 {
     state = SfzVoiceState::idle;
     region = nullptr;
+    triggeringMessage.reset();
     reader.reset();
     initialDelay = 0;
     localTime = 0;
@@ -432,10 +432,7 @@ void SfzVoice::reset()
 
 std::optional<MidiMessage> SfzVoice::getTriggeringMessage() const
 {
-    if (isPlaying())
-        return triggeringMessage;
-    else
-        return {};
+    return triggeringMessage;
 }
 
 void SfzVoice::resetResamplers()
