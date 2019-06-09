@@ -105,5 +105,41 @@ TEST_CASE("Region activation", "Region tests")
     }
 
     // TODO: add keyswitches
+    SECTION("Keyswitches: sw_last")
+    {
+        region.parseOpcode({ "sw_last", "40" });
+        REQUIRE( region.prepare() );
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 40, 0.5f));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 41));
+    }
+
+    SECTION("Keyswitches: sw_last with non-default keyswitch range")
+    {
+        region.parseOpcode({ "sw_hikey", "50" });
+        region.parseOpcode({ "sw_lokey", "30" });
+        region.parseOpcode({ "sw_last", "40" });
+        REQUIRE( region.prepare() );
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 60, 0.5f));
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 60));
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 60, 0.5f));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 60));
+        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 41));
+    }
     // TODO: add sequence switches
 }

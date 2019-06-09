@@ -121,9 +121,9 @@ The classification follows the list over at https://sfzformat.com/.
 
 ## Next steps
 - Write some more tests for the existing functionality that can be tested
+- Pitch-related envelopes and resampler
 - Code cleanup
 - sfz v2 curves
-- Pitch-related envelopes and resampler
 - EQ
 - Filters
 - LFOs

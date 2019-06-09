@@ -185,7 +185,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 		}
 
 		// Header logic
-		switch (hash(header.c_str()))
+		switch (hash(header))
 		{
 			case hash("global"):
 				if (hasGlobal)
@@ -229,7 +229,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 			const auto opcode = it[1];
 			const auto value = it[2];
 			// Store the members depending on the header
-			switch (hash(header.c_str()))
+			switch (hash(header))
 			{
 				case hash("global"):
 					globalMembers.emplace_back( opcode, value );
@@ -256,7 +256,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 				case hash("control"):
 					{
 						SfzOpcode lastOpcode { opcode, value };
-						switch (hash(lastOpcode.opcode.c_str()))
+						switch (hash(lastOpcode.opcode))
 						{
 						case hash("set_cc"):
 							if (lastOpcode.parameter && withinRange(SfzDefault::ccRange, *lastOpcode.parameter))

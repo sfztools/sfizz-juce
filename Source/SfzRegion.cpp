@@ -31,7 +31,7 @@ SfzRegion::SfzRegion(const File& root, SfzFilePool& filePool)
 void SfzRegion::parseOpcode(const SfzOpcode& opcode)
 {
     prepared = false; // region state changed
-    switch (hash(opcode.opcode.c_str()))
+    switch (hash(opcode.opcode))
     {
     // Sound source: sample playback
     case hash("sample"): 
@@ -45,7 +45,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     case hash("count"): setValueFromOpcode(opcode, sampleCount, SfzDefault::sampleCountRange); break;
     case hash("loopmode"):
     case hash("loop_mode"):
-        switch(hash(opcode.value.c_str()))
+        switch(hash(opcode.value))
         {
             case hash("no_loop"):
                 loopMode = SfzLoopMode::no_loop;
@@ -72,7 +72,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     case hash("group"): setValueFromOpcode(opcode, group, SfzDefault::groupRange); break;
     case hash("off_by"): setValueFromOpcode(opcode, offBy, SfzDefault::groupRange); break;
     case hash("off_mode"):
-        switch(hash(opcode.value.c_str()))
+        switch(hash(opcode.value))
         {
             case hash("fast"):
                 offMode = SfzOffMode::fast;
@@ -116,7 +116,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     case hash("sw_up"): setValueFromOpcode(opcode, keyswitchUp, SfzDefault::keyRange); break;
     case hash("sw_previous"): setValueFromOpcode(opcode, previousNote, SfzDefault::keyRange); break;
     case hash("sw_vel"):
-        switch(hash(opcode.value.c_str()))
+        switch(hash(opcode.value))
         {
             case hash("current"):
                 velocityOverride = SfzVelocityOverride::current;
@@ -139,7 +139,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     case hash("seq_position"): setValueFromOpcode(opcode, sequencePosition, SfzDefault::sequenceRange); break;
     // Region logic: triggers
     case hash("trigger"):
-        switch(hash(opcode.value.c_str()))
+        switch(hash(opcode.value))
         {
             case hash("attack"):
                 trigger = SfzTrigger::attack;
@@ -267,15 +267,54 @@ bool SfzRegion::checkMidiConditions(const MidiMessage& msg) const
 // TODO: rename this function
 void SfzRegion::updateSwitches(const MidiMessage& msg)
 {
+    if (msg.isNoteOn() && withinRange(keyswitchRange, msg.getNoteNumber()))
+    {
+        if (keyswitch)
+        {
+            if (*keyswitch == msg.getNoteNumber())
+                keySwitched = true;
+            else
+                keySwitched = false;
+        }
+
+        if (keyswitchDown)
+        {
+            if (*keyswitchDown == msg.getNoteNumber())
+                keySwitched = true;
+            else
+                keySwitched = false;
+        } 
+
+        if (keyswitchUp)
+        {
+            if (*keyswitchUp == msg.getNoteNumber())
+                keySwitched = false;
+            else
+                keySwitched = true;
+        }
+    }
+
+    if (msg.isNoteOff() && withinRange(keyswitchRange, msg.getNoteNumber()))
+    {
+        if (keyswitchDown)
+        {
+            if (*keyswitchDown == msg.getNoteNumber())
+                keySwitched = false;
+            else
+                keySwitched = true;
+        }
+
+        if (keyswitchUp)
+        {
+            if (*keyswitchUp == msg.getNoteNumber())
+                keySwitched = true;
+            else
+                keySwitched = false;
+        }
+    }
+
     if (msg.isNoteOn())
     {
-        if (keyswitch && *keyswitch == msg.getNoteNumber())
-            keySwitched = true;
-        if (keyswitchDown && *keyswitchDown == msg.getNoteNumber())
-            keySwitched = true;
-        if (keyswitchUp && *keyswitchUp == msg.getNoteNumber())
-            keySwitched = false;
-
         if (checkMidiConditions(msg))
         {
             // Sequence activation
@@ -299,23 +338,12 @@ void SfzRegion::updateSwitches(const MidiMessage& msg)
         }
     }
 
-    if (msg.isNoteOff())
-    {
-        if (keyswitchDown && *keyswitchDown == msg.getNoteNumber())
-            keySwitched = false;
-        if (keyswitchUp && *keyswitchUp == msg.getNoteNumber())
-            keySwitched = true;
-    }
-
     if (msg.isController())
     {
         if (withinRange(ccConditions.getWithDefault(msg.getControllerNumber()), msg.getControllerValue()))
             ccSwitched[msg.getControllerNumber()] = true;
         else
             ccSwitched[msg.getControllerNumber()] = false;
-        
-        // if (panCCTriggers.contains(msg.getControllerNumber()))
-        //     pan = initialPan + (float)msg.getControllerValue() / 127 * panCCTriggers[msg.getControllerNumber()];
     }
 
     if (msg.isPitchWheel())

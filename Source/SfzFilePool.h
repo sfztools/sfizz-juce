@@ -119,7 +119,7 @@ public:
             return;
         }
         const int actualNumSamples = (int) jmin( (int64)numSamples + offset, reader->lengthInSamples);
-        auto alreadyPreloaded = preloadedData.find(sampleName);
+        const auto alreadyPreloaded = preloadedData.find(sampleName);
         if (alreadyPreloaded == end(preloadedData) || alreadyPreloaded->second->getNumSamples() < actualNumSamples)
         {
             preloadedData[sampleName] = std::make_shared<AudioBuffer<float>>(config::numChannels, actualNumSamples);
