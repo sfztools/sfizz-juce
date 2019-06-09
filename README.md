@@ -50,9 +50,9 @@ The classification follows the list over at https://sfzformat.com/.
 | lochan, hichan     | int   | 1, 16         | 1 - 16              | :heavy_check_mark: | :x:       |
 | lobend, hibend     | float | -8192, 8192   | -8192, 8192         | :heavy_check_mark: | Unit test |
 | loccN, hiccN       | int   | 0, 127        | 0 - 127             | :heavy_check_mark: | Unit test |
-| sw_hikey, sw_lokey | int   | 0, 127        | 0 - 127             | :heavy_check_mark: | :x:       |
+| sw_hikey, sw_lokey | int   | 0, 127        | 0 - 127             | :heavy_check_mark: | Unit test |
 | sw_up, sw_down     | int   | unset         | 0 - 127             | :heavy_check_mark: | :x:       |
-| sw_last            | int   | unset         | 0 - 127             | :heavy_check_mark: | :x:       |
+| sw_last            | int   | unset         | 0 - 127             | :heavy_check_mark: | Unit test |
 | sw_previous        | int   | unset         | 0 - 127             | :heavy_check_mark: | :x:       |
 | sw_vel             | enum  | current       | current or previous | :heavy_check_mark: | :x:       |
 | sw_default         | int   |               | 0 - 127             | :heavy_check_mark: | :x:       |

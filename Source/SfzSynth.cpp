@@ -144,7 +144,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	auto headerIterator = std::sregex_iterator(fullString.begin(), fullString.end(), SfzRegexes::headers);
 	auto regexEnd = std::sregex_iterator();
 	uint32_t maxGroup { 1 };
-	std::optional<int> defaultSwitch {};
+	std::optional<uint8_t> defaultSwitch {};
 
 	std::vector<SfzOpcode> globalMembers;
 	std::vector<SfzOpcode> masterMembers;
@@ -232,7 +232,10 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 			switch (hash(header))
 			{
 				case hash("global"):
-					globalMembers.emplace_back( opcode, value );
+					if (opcode == "sw_default")
+						setValueFromOpcode({ opcode, value }, defaultSwitch, SfzDefault::keyRange);
+					else
+						globalMembers.emplace_back( opcode, value );
 					break;
 				case hash("master"):
 					masterMembers.emplace_back( opcode, value );
@@ -299,9 +302,16 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	for (auto& region: regions)
 	{
 		region.prepare();
+		
 		for (int ccIdx = 1; ccIdx < 128; ccIdx++)
 		{
 			region.updateSwitches(MidiMessage::controllerEvent((int)region.channelRange.getStart(), ccIdx, ccState[ccIdx]));
+		}
+
+		if (defaultSwitch)
+		{
+			region.updateSwitches(MidiMessage::noteOn(1, *defaultSwitch, 1.0f));
+			region.updateSwitches(MidiMessage::noteOff(1, *defaultSwitch));
 		}
 	}
 	return true;
