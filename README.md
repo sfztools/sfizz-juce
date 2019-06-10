@@ -41,13 +41,13 @@ The classification follows the list over at https://sfzformat.com/.
 ## Region logic: key mapping
 |      opcode       | type  | default value |  range  |       status       |   tested    |
 | ----------------- | ----- | ------------- | ------- | ------------------ | ----------- |
-| lokey, hikey, key | int   | 0, 127        | 0 - 127 | :heavy_check_mark: | Manual test |
-| lovel, hivel      | float | 0, 127        |         | :heavy_check_mark: | Manual test |
+| lokey, hikey, key | int   | 0, 127        | 0 - 127 | :heavy_check_mark: | Unit test |
+| lovel, hivel      | float | 0, 127        |         | :heavy_check_mark: | Unit test |
 
 ## Region logic: midi conditions
 |       opcode       | type  | default value |        range        |       status       |  tested   |
 | ------------------ | ----- | ------------- | ------------------- | ------------------ | --------- |
-| lochan, hichan     | int   | 1, 16         | 1 - 16              | :heavy_check_mark: | :x:       |
+| lochan, hichan     | int   | 1, 16         | 1 - 16              | :heavy_check_mark: | Unit test |
 | lobend, hibend     | float | -8192, 8192   | -8192, 8192         | :heavy_check_mark: | Unit test |
 | loccN, hiccN       | int   | 0, 127        | 0 - 127             | :heavy_check_mark: | Unit test |
 | sw_hikey, sw_lokey | int   | 0, 127        | 0 - 127             | :heavy_check_mark: | Unit test |
@@ -70,7 +70,7 @@ The classification follows the list over at https://sfzformat.com/.
 |       opcode       | type | default value |                    range                    |       status       |              tested              |
 | ------------------ | ---- | ------------- | ------------------------------------------- | ------------------ | -------------------------------- |
 | on_loccN, on_hiccN | int  | 0, 127        | 0 - 127                                     | :heavy_check_mark: | :x:                              |
-| trigger            | enum | attack        | attack, release, first, legato, release_key | :heavy_check_mark: | Manual test, partial (no legato) |
+| trigger            | enum | attack        | attack, release, first, legato, release_key | :heavy_check_mark: | Unit test except `first` and `legato` |
 
 ## Performance parameters: Pitch
 |     opcode      | type | default value |    range     |       status       |   tested    |
@@ -85,15 +85,15 @@ The classification follows the list over at https://sfzformat.com/.
 ## Performance parameters: Amplifier
 |          opcode           | type  | default value |   range    |       status       |   tested    |
 | ------------------------- | ----- | ------------- | ---------- | ------------------ | ----------- |
+| pan, pan_oncc             | float | 0             | -100 - 100 | :heavy_check_mark: | Manual test |
 | position, position_oncc   | float | 0             | -100 - 100 | :heavy_check_mark: | Manual test |
+| width, width_oncc         | float | 100           | -100 - 100 | :heavy_check_mark: | Manual test |
 | volume, volume_oncc       | float | 0 dB          | -144 - 6   | :x:                | :x:         |
 | amplitude, amplitude_oncc | float | 100           | 0 - 100    | :heavy_check_mark: | Manual test |
 | amp_keytrack              | float | 0             | -100 - 100 | :x:                | :x:         |
 | amp_keycenter             | int   | 60 (C4)       | 0 - 127    | :heavy_check_mark: | Manual test |
 | amp_veltrack              | float | 0             | -100 - 100 | :heavy_check_mark: | Manual test |
 | amp_velcurve_N            | float | 0             | 0 - 1      | :heavy_check_mark: | Manual test |
-| pan, pan_oncc             | float | 0             | -100 - 100 | :heavy_check_mark: | Manual test |
-| width, width_oncc         | float | 100           | -100 - 100 | :heavy_check_mark: | Manual test |
 
 ## Modulation: Envelope generators
 

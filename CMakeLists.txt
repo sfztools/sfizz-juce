@@ -43,6 +43,7 @@ set(TEST_SOURCES
     Tests/RegionBuildTests.cpp
     Tests/RegionActivationTests.cpp
     Tests/CCEnvelopeTest.cpp
+    Tests/RegionTriggers.cpp
     Tests/FileTests.cpp
     Tests/OpcodeTests.cpp
     Tests/Main.cpp

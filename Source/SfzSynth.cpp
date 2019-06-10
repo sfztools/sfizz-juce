@@ -433,7 +433,7 @@ void SfzSynth::checkRegionsForActivation(const MidiMessage& msg, int timestamp)
 	{
 		if (region.appliesTo(msg, randValue))
 		{
-			auto freeVoice = std::find_if(voices.begin(), voices.end(), [](SfzVoice& voice) { return voice.isFree(); });
+			auto freeVoice = std::find_if(voices.begin(), voices.end(), [](auto& voice) { return voice.isFree(); });
 			if (freeVoice != end(voices))
 			{
 				DBG("Found an active region on note " << msg.getNoteNumber() << " with sample " << region.sample);
