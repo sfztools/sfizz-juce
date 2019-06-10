@@ -63,8 +63,8 @@ The classification follows the list over at https://sfzformat.com/.
 | lorand, hirand       | float | 0, 1          | 0 - 1   | :heavy_check_mark: | Unit test   |
 | lochanaft, hichanaft | int   | 0, 127        | 0 - 127 | :heavy_check_mark: | Unit test   |
 | lobpm, hibpm         | float | 0, 500        | 0, 500  | :heavy_check_mark: | Unit test   |
-| seq_length           | int   | 1             | 1 - 100 | :heavy_check_mark: | Manual test |
-| seq_position         | int   | 1             | 1 - 100 | :heavy_check_mark: | Manual test |
+| seq_length           | int   | 1             | 1 - 100 | :heavy_check_mark: | Unit test |
+| seq_position         | int   | 1             | 1 - 100 | :heavy_check_mark: | Unit test |
 
 ## Region logic: triggers
 |       opcode       | type | default value |                    range                    |       status       |              tested              |
@@ -73,14 +73,14 @@ The classification follows the list over at https://sfzformat.com/.
 | trigger            | enum | attack        | attack, release, first, legato, release_key | :heavy_check_mark: | Manual test, partial (no legato) |
 
 ## Performance parameters: Pitch
-|     opcode      | type | default value |    range     |       status       |                        tested                         |
-| --------------- | ---- | ------------- | ------------ | ------------------ | ----------------------------------------------------- |
-| pitch_keycenter | int  | 60 (C4)       | 0 - 127      | :heavy_check_mark: | Manual test                                           |
-| pitch_keytrack  | int  | 100           | -1200 - 1200 | :heavy_check_mark: | Manual test                                           |
-| pitch_veltrack  | int  | 100           | -9600 - 9600 | :heavy_check_mark: | Manual test                                           |
-| pitch_random    | int  | 0             | 0 - 9600     | :heavy_check_mark: | Manual test                                           |
-| transpose       | int  | 0             | -127 - 127   | :heavy_check_mark: | Bugs for crazy transpose ranges due to the DFD size.. |
-| tune            | int  | 0 cents       | -100 - 100   | :heavy_check_mark: | Manual test                                           |
+|     opcode      | type | default value |    range     |       status       |   tested    |
+| --------------- | ---- | ------------- | ------------ | ------------------ | ----------- |
+| pitch_keycenter | int  | 60 (C4)       | 0 - 127      | :heavy_check_mark: | Manual test |
+| pitch_keytrack  | int  | 100           | -1200 - 1200 | :heavy_check_mark: | Manual test |
+| pitch_veltrack  | int  | 100           | -9600 - 9600 | :heavy_check_mark: | Manual test |
+| pitch_random    | int  | 0             | 0 - 9600     | :heavy_check_mark: | Manual test |
+| transpose       | int  | 0             | -127 - 127   | :heavy_check_mark: | Manual test |
+| tune            | int  | 0 cents       | -100 - 100   | :heavy_check_mark: | Manual test |
 
 ## Performance parameters: Amplifier
 |          opcode           | type  | default value |   range    |       status       |   tested    |

@@ -256,7 +256,7 @@ String SfzRegion::stringDescription() const
 
 bool SfzRegion::checkMidiConditions(const MidiMessage& msg) const
 {
-    int64_t velocity = static_cast<int64_t>(msg.getVelocity());
+    auto velocity = msg.getVelocity();
     bool keyOk = withinRange(keyRange, msg.getNoteNumber());
     bool velOk = withinRange(velocityRange, velocity) || msg.isNoteOff();
     bool chanOk = withinRange(channelRange, msg.getChannel());
@@ -297,11 +297,11 @@ void SfzRegion::updateSwitches(const MidiMessage& msg)
         if (checkMidiConditions(msg))
         {
             // Sequence activation
+            sequenceCounter += 1;
             if ((sequenceCounter % sequenceLength) == sequencePosition - 1)
                 sequenceSwitched = true;
             else
                 sequenceSwitched = false;
-            sequenceCounter += 1;
 
             // Velocity memory for release_key and for sw_vel=previous
             if (trigger == SfzTrigger::release_key || velocityOverride == SfzVelocityOverride::previous)
