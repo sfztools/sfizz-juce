@@ -35,7 +35,7 @@ class SfzCCEnvelope
 {
 public:
     SfzCCEnvelope(int maximumSize = config::defaultSamplesPerBlock)
-    : fifo(std::make_shared<AbstractFifo>(maximumSize))
+    : fifo(maximumSize)
     {
         points.reserve(maximumSize);
         smoothedValue.setCurrentAndTargetValue(0.0f);
@@ -43,9 +43,9 @@ public:
 
     void setSize(int maximumSize)
     {
-        fifo->reset();
+        fifo.reset();
         points.reserve(maximumSize);
-        fifo->setTotalSize(maximumSize);
+        fifo.setTotalSize(maximumSize);
     }
 
     void setTransform(std::function<float(float)> transform)
@@ -61,7 +61,7 @@ public:
 
     void addEvent(int timestamp, uint8_t ccValue)
     {
-        AbstractFifo::ScopedWrite writer { *fifo, 1 };
+        AbstractFifo::ScopedWrite writer { fifo, 1 };
         if (writer.blockSize1 == 1)
             points.emplace(begin(points) + writer.startIndex1, timestamp, ccValue);
         else
@@ -70,7 +70,7 @@ public:
 
     float getNextValue()
     {
-        if (!smoothedValue.isSmoothing() && fifo->getNumReady() > 0)
+        if (!smoothedValue.isSmoothing() && fifo.getNumReady() > 0)
         {
             auto [timestamp, ccValue] = readEventFromFifo();
             auto rampDuration = timestamp > localTime ? timestamp - localTime : 0;
@@ -85,7 +85,7 @@ public:
 private:
     EnvelopeEvent readEventFromFifo()
     {
-        AbstractFifo::ScopedRead reader { *fifo, 1 };
+        AbstractFifo::ScopedRead reader { fifo, 1 };
         if (reader.blockSize1 == 1)
             return points[reader.startIndex1];
         else
@@ -94,7 +94,7 @@ private:
 
     std::function<float(float)> transformValue { [] (float ccValue) -> float { return ccValue; } };
     std::vector<EnvelopeEvent> points;
-    std::shared_ptr<AbstractFifo> fifo;
+    AbstractFifo fifo;
     SmoothedValue<float, ValueSmoothingTypes::Linear> smoothedValue;
     uint32_t localTime { 0 };
 };
