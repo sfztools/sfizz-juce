@@ -208,3 +208,4 @@ TEST_CASE("Region activation", "Region tests")
     }
     // TODO: add sequence switches
 }
+

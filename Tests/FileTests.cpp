@@ -218,3 +218,58 @@ TEST_CASE("MeatBass", "File tests")
         REQUIRE( synth.getRegionView(3)->sample == R"(../Samples/pizz/a0_vl4_rr4.wav)" );
     }
 }
+
+TEST_CASE("Switches with files", "File tests")
+{
+    SECTION("sw_default")
+    {
+        const double sampleRate { 48000 };
+        const int blockSize { 256 };
+        SfzSynth synth;
+        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/sw_default.sfz"));
+        REQUIRE( synth.getNumRegions() == 4 );
+        REQUIRE( !synth.getRegionView(0)->isSwitchedOn() );
+        REQUIRE( synth.getRegionView(1)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(2)->isSwitchedOn() );
+        REQUIRE( synth.getRegionView(3)->isSwitchedOn() );
+    }
+
+    SECTION("sw_default and playing with switches")
+    {
+        const double sampleRate { 48000 };
+        const int blockSize { 256 };
+        SfzSynth synth;
+        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/sw_default.sfz"));
+        REQUIRE( synth.getNumRegions() == 4 );
+        REQUIRE( !synth.getRegionView(0)->isSwitchedOn() );
+        REQUIRE( synth.getRegionView(1)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(2)->isSwitchedOn() );
+        REQUIRE( synth.getRegionView(3)->isSwitchedOn() );
+        AudioBuffer<float> buffer { 2, blockSize };
+        synth.prepareToPlay(sampleRate, blockSize);
+        buffer.clear();
+        MidiBuffer midiMessages {};
+        midiMessages.addEvent(MidiMessage::noteOn(1, 41, 0.5f), 0);
+        synth.renderNextBlock(buffer, midiMessages);
+        REQUIRE( synth.getRegionView(0)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(1)->isSwitchedOn() );
+        REQUIRE( synth.getRegionView(2)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(3)->isSwitchedOn() );
+        midiMessages.clear();
+        midiMessages.addEvent(MidiMessage::noteOff(1, 41), 0);
+        midiMessages.addEvent(MidiMessage::noteOn(1, 42, 0.5f), 0);
+        synth.renderNextBlock(buffer, midiMessages);
+        REQUIRE( !synth.getRegionView(0)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(1)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(2)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(3)->isSwitchedOn() );
+        midiMessages.clear();
+        midiMessages.addEvent(MidiMessage::noteOff(1, 42), 0);
+        midiMessages.addEvent(MidiMessage::noteOn(1, 40, 0.5f), 0);
+        synth.renderNextBlock(buffer, midiMessages);
+        REQUIRE( !synth.getRegionView(0)->isSwitchedOn() );
+        REQUIRE( synth.getRegionView(1)->isSwitchedOn() );
+        REQUIRE( !synth.getRegionView(2)->isSwitchedOn() );
+        REQUIRE( synth.getRegionView(3)->isSwitchedOn() );
+    }
+}
