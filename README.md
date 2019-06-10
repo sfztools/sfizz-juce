@@ -51,11 +51,11 @@ The classification follows the list over at https://sfzformat.com/.
 | lobend, hibend     | float | -8192, 8192   | -8192, 8192         | :heavy_check_mark: | Unit test |
 | loccN, hiccN       | int   | 0, 127        | 0 - 127             | :heavy_check_mark: | Unit test |
 | sw_hikey, sw_lokey | int   | 0, 127        | 0 - 127             | :heavy_check_mark: | Unit test |
-| sw_up, sw_down     | int   | unset         | 0 - 127             | :heavy_check_mark: | :x:       |
+| sw_up, sw_down     | int   | unset         | 0 - 127             | :heavy_check_mark: | Unit test |
 | sw_last            | int   | unset         | 0 - 127             | :heavy_check_mark: | Unit test |
-| sw_previous        | int   | unset         | 0 - 127             | :heavy_check_mark: | :x:       |
+| sw_previous        | int   | unset         | 0 - 127             | :heavy_check_mark: | Unit test |
 | sw_vel             | enum  | current       | current or previous | :heavy_check_mark: | :x:       |
-| sw_default         | int   |               | 0 - 127             | :heavy_check_mark: | :x:       |
+| sw_default         | int   |               | 0 - 127             | :heavy_check_mark: | Unit test |
 
 ## Region logic: internal conditions
 |        opcode        | type  | default value |  range  |       status       |   tested    |
