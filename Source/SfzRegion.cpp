@@ -277,40 +277,20 @@ void SfzRegion::updateSwitches(const MidiMessage& msg)
                 keySwitched = false;
         }
 
-        if (keyswitchDown)
-        {
-            if (*keyswitchDown == msg.getNoteNumber())
-                keySwitched = true;
-            else
-                keySwitched = false;
-        } 
+        if (keyswitchDown && *keyswitchDown == msg.getNoteNumber())
+            keySwitched = true;
 
-        if (keyswitchUp)
-        {
-            if (*keyswitchUp == msg.getNoteNumber())
-                keySwitched = false;
-            else
-                keySwitched = true;
-        }
+        if (keyswitchUp && *keyswitchUp == msg.getNoteNumber())
+            keySwitched = false;
     }
 
     if (msg.isNoteOff() && withinRange(keyswitchRange, msg.getNoteNumber()))
     {
-        if (keyswitchDown)
-        {
-            if (*keyswitchDown == msg.getNoteNumber())
-                keySwitched = false;
-            else
-                keySwitched = true;
-        }
+        if (keyswitchDown && *keyswitchDown == msg.getNoteNumber())
+            keySwitched = false;
 
-        if (keyswitchUp)
-        {
-            if (*keyswitchUp == msg.getNoteNumber())
-                keySwitched = true;
-            else
-                keySwitched = false;
-        }
+        if (keyswitchUp && *keyswitchUp == msg.getNoteNumber())
+            keySwitched = true;
     }
 
     if (msg.isNoteOn())
@@ -331,7 +311,7 @@ void SfzRegion::updateSwitches(const MidiMessage& msg)
 
         if (previousNote)
         {
-            if ( msg.getNoteNumber() ==  *previousNote)
+            if ( *previousNote == msg.getNoteNumber())
                 previousKeySwitched = true;
             else
                 previousKeySwitched = false;
