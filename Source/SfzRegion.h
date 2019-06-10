@@ -95,7 +95,6 @@ struct SfzRegion
     SfzContainer<Range<uint8_t>> ccConditions { SfzDefault::ccRange };
     Range<uint8_t> keyswitchRange{ SfzDefault::keyRange }; // sw_hikey and sw_lokey
     std::optional<uint8_t> keyswitch {}; // sw_last
-    std::optional<uint8_t> defaultKeyswitch {}; // sw_default
     std::optional<uint8_t> keyswitchUp {}; // sw_up
     std::optional<uint8_t> keyswitchDown {}; // sw_down
     std::optional<uint8_t> previousNote {}; // sw_previous

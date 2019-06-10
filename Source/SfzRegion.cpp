@@ -110,7 +110,6 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
         break;
     case hash("sw_lokey"): setRangeStartFromOpcode(opcode, keyswitchRange, SfzDefault::keyRange); break;
     case hash("sw_hikey"): setRangeEndFromOpcode(opcode, keyswitchRange, SfzDefault::keyRange); break;
-    case hash("sw_default"): setValueFromOpcode(opcode, defaultKeyswitch, SfzDefault::keyRange); break;
     case hash("sw_last"): setValueFromOpcode(opcode, keyswitch, SfzDefault::keyRange); break;
     case hash("sw_down"): setValueFromOpcode(opcode, keyswitchDown, SfzDefault::keyRange); break;
     case hash("sw_up"): setValueFromOpcode(opcode, keyswitchUp, SfzDefault::keyRange); break;
@@ -474,10 +473,8 @@ void SfzRegion::checkInitialConditions()
 
     if (sequencePosition > 1)
         sequenceSwitched = false;
-
-    if (!defaultKeyswitch && keyswitch)
-        keySwitched = false;
-    if (defaultKeyswitch && keyswitch && *keyswitch != *defaultKeyswitch)
+    
+    if (keyswitch)
         keySwitched = false;
 
     if (keyswitchDown)
