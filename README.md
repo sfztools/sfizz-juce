@@ -39,8 +39,8 @@ The classification follows the list over at https://sfzformat.com/.
 | off_by   | int  | 0             | 0 - 2^32       | :heavy_check_mark: | Manual test |
 
 ## Region logic: key mapping
-|      opcode       | type  | default value |  range  |       status       |   tested    |
-| ----------------- | ----- | ------------- | ------- | ------------------ | ----------- |
+|      opcode       | type  | default value |  range  |       status       |  tested   |
+| ----------------- | ----- | ------------- | ------- | ------------------ | --------- |
 | lokey, hikey, key | int   | 0, 127        | 0 - 127 | :heavy_check_mark: | Unit test |
 | lovel, hivel      | float | 0, 127        |         | :heavy_check_mark: | Unit test |
 
@@ -58,18 +58,18 @@ The classification follows the list over at https://sfzformat.com/.
 | sw_default         | int   |               | 0 - 127             | :heavy_check_mark: | Unit test |
 
 ## Region logic: internal conditions
-|        opcode        | type  | default value |  range  |       status       |   tested    |
-| -------------------- | ----- | ------------- | ------- | ------------------ | ----------- |
-| lorand, hirand       | float | 0, 1          | 0 - 1   | :heavy_check_mark: | Unit test   |
-| lochanaft, hichanaft | int   | 0, 127        | 0 - 127 | :heavy_check_mark: | Unit test   |
-| lobpm, hibpm         | float | 0, 500        | 0, 500  | :heavy_check_mark: | Unit test   |
+|        opcode        | type  | default value |  range  |       status       |  tested   |
+| -------------------- | ----- | ------------- | ------- | ------------------ | --------- |
+| lorand, hirand       | float | 0, 1          | 0 - 1   | :heavy_check_mark: | Unit test |
+| lochanaft, hichanaft | int   | 0, 127        | 0 - 127 | :heavy_check_mark: | Unit test |
+| lobpm, hibpm         | float | 0, 500        | 0, 500  | :heavy_check_mark: | Unit test |
 | seq_length           | int   | 1             | 1 - 100 | :heavy_check_mark: | Unit test |
 | seq_position         | int   | 1             | 1 - 100 | :heavy_check_mark: | Unit test |
 
 ## Region logic: triggers
-|       opcode       | type | default value |                    range                    |       status       |              tested              |
-| ------------------ | ---- | ------------- | ------------------------------------------- | ------------------ | -------------------------------- |
-| on_loccN, on_hiccN | int  | 0, 127        | 0 - 127                                     | :heavy_check_mark: | Unit test                              |
+|       opcode       | type | default value |                    range                    |       status       |  tested   |
+| ------------------ | ---- | ------------- | ------------------------------------------- | ------------------ | --------- |
+| on_loccN, on_hiccN | int  | 0, 127        | 0 - 127                                     | :heavy_check_mark: | Unit test |
 | trigger            | enum | attack        | attack, release, first, legato, release_key | :heavy_check_mark: | Unit test |
 
 ## Performance parameters: Pitch
