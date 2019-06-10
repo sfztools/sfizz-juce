@@ -47,11 +47,18 @@ private:
 struct ValueTreeChangedListener: public ValueTree::Listener
 {
     ValueTreeChangedListener() = delete;
-    ValueTreeChangedListener(const Identifier& id, std::function<void(const var&)> callback)
-    : id(id), callback(callback) { }
+    ValueTreeChangedListener(ValueTree vt, const Identifier& id, std::function<void(const var&)> callback)
+    : id(id), valueTree(std::move(vt)), callback(callback)
+    {
+        valueTree.addListener(this);
+    }
+    ~ValueTreeChangedListener()
+    {
+        valueTree.removeListener(this);
+    }
     void valueTreePropertyChanged (ValueTree& vt, const Identifier &property) override
     {
-        if (property == id)
+        if (property == id && valueTree == vt)
             callback(vt.getProperty(property));
     }
     // Unused
@@ -62,6 +69,7 @@ struct ValueTreeChangedListener: public ValueTree::Listener
     void valueTreeRedirected (ValueTree&) override {}
 private:
     const Identifier& id;
+    ValueTree valueTree;
     std::function<void(const var&)> callback;
 };
 

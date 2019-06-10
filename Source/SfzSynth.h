@@ -49,7 +49,10 @@ public:
     StringArray getUnknownOpcodes() const;
     StringArray getCCLabels() const;
     const SfzRegion* getRegionView(int num) const;
-
+    inline int getNumActiveVoices() const
+    { 
+        return static_cast<int>(std::count_if(voices.cbegin(), voices.cend(), [](const auto& voice) { return voice.isPlaying(); })); 
+    }
     
 private:
     File rootDirectory { File::getCurrentWorkingDirectory() };
@@ -64,7 +67,6 @@ private:
     SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
-    // TODO: transform to list
     std::list<SfzRegion> regions;
     std::list<SfzVoice> voices;
     std::vector<File> includedFiles;

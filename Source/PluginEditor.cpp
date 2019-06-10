@@ -35,12 +35,16 @@ SfzpluginAudioProcessorEditor::SfzpluginAudioProcessorEditor (SfzpluginAudioProc
     openButton.onClick = [this](){ sfzChooser.setVisible(true); };
     addAndMakeVisible(textBox);
     textBox.setMultiLine(true);
+    addAndMakeVisible(numVoices);
+    numVoices.setText("Active voices: 0", dontSendNotification);
     addAndMakeVisible(keyboardComponent);
     addChildComponent(sfzChooser);
+    startTimer(100);
 }
 
 SfzpluginAudioProcessorEditor::~SfzpluginAudioProcessorEditor()
 {
+    stopTimer();
 }
 
 //==============================================================================
@@ -57,6 +61,8 @@ void SfzpluginAudioProcessorEditor::resized()
     auto paintArea = getLocalBounds();
     auto topRow = paintArea.removeFromTop(30);
     openButton.setBounds(topRow.removeFromLeft(100));
+    topRow.removeFromLeft(30);
+    numVoices.setBounds(topRow.removeFromRight(200));
     keyboardComponent.setBounds(paintArea.removeFromBottom(100));
     textBox.setBounds(paintArea);
 }

@@ -92,7 +92,7 @@ private:
 //==============================================================================
 /**
 */
-class SfzpluginAudioProcessorEditor  : public AudioProcessorEditor
+class SfzpluginAudioProcessorEditor  : public AudioProcessorEditor, public Timer
 {
 public:
     SfzpluginAudioProcessorEditor (SfzpluginAudioProcessor&, MidiKeyboardState&);
@@ -102,12 +102,20 @@ public:
     void paint (Graphics&) override;
     void resized() override;
 
+    void timerCallback() override
+    {
+        String s;
+        s << "Active voices: " << processor.getNumActiveVoices();
+        numVoices.setText(s, dontSendNotification);
+    }
+
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SfzpluginAudioProcessor& processor;
     MidiKeyboardComponent keyboardComponent;
     TextButton openButton;
+    Label numVoices;
     SfzFileChooser sfzChooser;
     TextEditor textBox;
     SimpleVisibilityWatcher<SfzFileChooser> watcher { sfzChooser, [this](){ 
@@ -123,11 +131,6 @@ private:
             for (auto& label: labels)
                 text << "- " << label << newLine;
             textBox.setText(text);
-            // auto sampleList = processor.getRegionList();
-            // for (auto& region: sampleList)
-            // {
-            //     textBox.setText(sampleList.joinIntoString("\n"));
-            // }
         }
     }};
 

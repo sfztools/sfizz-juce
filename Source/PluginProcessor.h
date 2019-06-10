@@ -88,6 +88,7 @@ public:
     int getNumRegions() const { return sfzSynth.getNumRegions(); }
     int getNumGroups() const { return sfzSynth.getNumGroups(); }
     int getNumMasters() const { return sfzSynth.getNumMasters(); }
+    inline int getNumActiveVoices() { return sfzSynth.getNumActiveVoices(); }
     StringArray getUnknownOpcodes() const { return sfzSynth.getUnknownOpcodes(); }
     StringArray getCCLabels() const { return sfzSynth.getCCLabels(); }
     
