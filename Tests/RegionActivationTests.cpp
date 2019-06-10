@@ -184,5 +184,27 @@ TEST_CASE("Region activation", "Region tests")
         region.updateSwitches(MidiMessage::noteOff(1, 41));
         REQUIRE( region.isSwitchedOn() );
     }
+
+    SECTION("Keyswitches: sw_previous")
+    {
+        region.parseOpcode({ "sw_previous", "40" });
+        REQUIRE( region.prepare() );
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        REQUIRE( region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        REQUIRE( !region.isSwitchedOn() );
+        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        REQUIRE( !region.isSwitchedOn() );
+    }
     // TODO: add sequence switches
 }
