@@ -146,6 +146,7 @@ struct SfzRegion
     int numChannels { 1 };
     // TODO : Transform regions to list and put this as atomic
     int activeVoices { 0 }; 
+    std::atomic<int> activeNotesInRange { -1 };
 
     std::vector<SfzOpcode> unknownOpcodes;
     std::shared_ptr<AudioBuffer<float>> preloadedData;

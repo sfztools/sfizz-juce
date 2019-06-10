@@ -3,7 +3,7 @@
 #include "../Source/SfzRegion.h"
 using namespace Catch::literals;
 
-TEST_CASE("Region triggers", "Region triggers")
+TEST_CASE("Basic triggers", "Region triggers")
 {
     SfzFilePool openFiles { File::getCurrentWorkingDirectory() };
     SfzRegion region { File::getCurrentWorkingDirectory(), openFiles };
@@ -93,5 +93,43 @@ TEST_CASE("Region triggers", "Region triggers")
         REQUIRE( region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.39f) );
         REQUIRE( region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.40f) );
         REQUIRE( !region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.41f) );
+    }
+}
+
+TEST_CASE("Legato triggers", "Region triggers")
+{
+    SfzFilePool openFiles { File::getCurrentWorkingDirectory() };
+    SfzRegion region { File::getCurrentWorkingDirectory(), openFiles };
+    region.parseOpcode({ "sample", "*sine" });
+    SECTION("First note playing")
+    {
+        region.parseOpcode({ "lokey", "40" });
+        region.parseOpcode({ "hikey", "50" });
+        region.parseOpcode({ "trigger", "first" });
+        region.prepare();
+        region.updateSwitches( MidiMessage::noteOn(1, 40, (uint8)64) );
+        REQUIRE( region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.5f) );
+        region.updateSwitches( MidiMessage::noteOn(1, 41, (uint8)64) );
+        REQUIRE( !region.appliesTo(MidiMessage::noteOn(1, 41, (uint8)64), 0.5f) );
+        region.updateSwitches( MidiMessage::noteOff(1, 40) );
+        region.updateSwitches( MidiMessage::noteOff(1, 41) );
+        region.updateSwitches( MidiMessage::noteOn(1, 42, (uint8)64) );
+        REQUIRE( region.appliesTo(MidiMessage::noteOn(1, 42, (uint8)64), 0.5f) );
+    }
+
+    SECTION("Second note playing")
+    {
+        region.parseOpcode({ "lokey", "40" });
+        region.parseOpcode({ "hikey", "50" });
+        region.parseOpcode({ "trigger", "legato" });
+        region.prepare();
+        region.updateSwitches( MidiMessage::noteOn(1, 40, (uint8)64) );
+        REQUIRE( !region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.5f) );
+        region.updateSwitches( MidiMessage::noteOn(1, 41, (uint8)64) );
+        REQUIRE( region.appliesTo(MidiMessage::noteOn(1, 41, (uint8)64), 0.5f) );
+        region.updateSwitches( MidiMessage::noteOff(1, 40) );
+        region.updateSwitches( MidiMessage::noteOff(1, 41) );
+        region.updateSwitches( MidiMessage::noteOn(1, 42, (uint8)64) );
+        REQUIRE( !region.appliesTo(MidiMessage::noteOn(1, 42, (uint8)64), 0.5f) );
     }
 }

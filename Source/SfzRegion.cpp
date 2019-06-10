@@ -292,21 +292,21 @@ void SfzRegion::updateSwitches(const MidiMessage& msg)
             keySwitched = true;
     }
 
-    if (msg.isNoteOn())
+    if (msg.isNoteOn() && withinRange(keyRange, msg.getNoteNumber()))
     {
-        if (checkMidiConditions(msg))
-        {
-            // Sequence activation
-            sequenceCounter += 1;
-            if ((sequenceCounter % sequenceLength) == sequencePosition - 1)
-                sequenceSwitched = true;
-            else
-                sequenceSwitched = false;
+        // Update the number of notes playing for the region
+        activeNotesInRange++;
 
-            // Velocity memory for release_key and for sw_vel=previous
-            if (trigger == SfzTrigger::release_key || velocityOverride == SfzVelocityOverride::previous)
-                lastNoteVelocities[msg.getNoteNumber()] = msg.getVelocity();
-        }
+        // Sequence activation
+        sequenceCounter += 1;
+        if ((sequenceCounter % sequenceLength) == sequencePosition - 1)
+            sequenceSwitched = true;
+        else
+            sequenceSwitched = false;
+
+        // Velocity memory for release_key and for sw_vel=previous
+        if (trigger == SfzTrigger::release_key || velocityOverride == SfzVelocityOverride::previous)
+            lastNoteVelocities[msg.getNoteNumber()] = msg.getVelocity();
 
         if (previousNote)
         {
@@ -315,6 +315,12 @@ void SfzRegion::updateSwitches(const MidiMessage& msg)
             else
                 previousKeySwitched = false;
         }
+    }
+
+    if (msg.isNoteOff() && withinRange(keyRange, msg.getNoteNumber()))
+    {
+        // Update the number of notes playing for the region
+        activeNotesInRange--;
     }
 
     if (msg.isController())
@@ -377,12 +383,11 @@ bool SfzRegion::appliesTo(const MidiMessage& msg, float randValue) const
             return true;
         if (msg.isNoteOff() && (trigger == SfzTrigger::release || trigger == SfzTrigger::release_key))
             return true;
-        if (msg.isNoteOn() && trigger == SfzTrigger::first && activeVoices == 0)
+        if (msg.isNoteOn() && trigger == SfzTrigger::first && activeNotesInRange == 0)
             return true;
-        if (msg.isNoteOn() && trigger == SfzTrigger::legato && activeVoices > 0)
+        if (msg.isNoteOn() && trigger == SfzTrigger::legato && activeNotesInRange > 0)
             return true;
-    }
-    
+    }    
     return false;
 }
 
