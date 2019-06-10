@@ -79,6 +79,7 @@ TEST_CASE("Basic triggers", "Region triggers")
         REQUIRE( region.appliesTo(MidiMessage::noteOn(4, 40, (uint8)64), 0.5f) );
         REQUIRE( !region.appliesTo(MidiMessage::noteOn(5, 40, (uint8)64), 0.5f) );
     }
+
     SECTION("lorand and hirand")
     {
         region.parseOpcode({ "key", "40" });
@@ -93,6 +94,22 @@ TEST_CASE("Basic triggers", "Region triggers")
         REQUIRE( region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.39f) );
         REQUIRE( region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.40f) );
         REQUIRE( !region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.41f) );
+    }
+
+    SECTION("on_loccN, on_hiccN")
+    {
+        region.parseOpcode({ "on_locc47", "64" });
+        region.parseOpcode({ "on_hicc47", "68" });
+        region.prepare();
+        REQUIRE( !region.appliesTo(MidiMessage::noteOn(1, 40, (uint8)64), 0.40f) );
+        REQUIRE( !region.appliesTo(MidiMessage::controllerEvent(1, 47, 63), 0.40f) );
+        REQUIRE( region.appliesTo(MidiMessage::controllerEvent(1, 47, 64), 0.40f) );
+        REQUIRE( region.appliesTo(MidiMessage::controllerEvent(1, 47, 65), 0.40f) );
+        REQUIRE( region.appliesTo(MidiMessage::controllerEvent(1, 47, 66), 0.40f) );
+        REQUIRE( region.appliesTo(MidiMessage::controllerEvent(1, 47, 67), 0.40f) );
+        REQUIRE( region.appliesTo(MidiMessage::controllerEvent(1, 47, 68), 0.40f) );
+        REQUIRE( !region.appliesTo(MidiMessage::controllerEvent(1, 47, 69), 0.40f) );
+        REQUIRE( !region.appliesTo(MidiMessage::controllerEvent(1, 40, 64), 0.40f) );
     }
 }
 

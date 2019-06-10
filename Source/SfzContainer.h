@@ -58,6 +58,8 @@ public:
             container.emplace(key, defaultValue);
         return container.operator[](key);
     }
+
+    inline bool empty() const { return container.empty(); }
 private:
     const ValueType defaultValue;
     std::map<int, ValueType> container;

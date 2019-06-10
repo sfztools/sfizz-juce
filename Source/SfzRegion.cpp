@@ -368,23 +368,35 @@ bool SfzRegion::appliesTo(const MidiMessage& msg, float randValue) const
     if (!isSwitchedOn())
         return false;
 
-    if (msg.isController()
-        && ccTriggers.contains(msg.getControllerNumber())
-        && withinRange(ccTriggers.get(msg.getControllerNumber()), (uint8_t)msg.getControllerValue()))
+    if (!ccTriggers.empty())
     {
-        return true;
-    }
+        // When we have CC triggers there's no fallback on key ranges
+        if (!msg.isController())
+            return false;
+
+        const auto ccNumber = msg.getControllerNumber();
+        const auto ccValue = static_cast<uint8_t>(msg.getControllerValue());
+
+        if (ccTriggers.contains(ccNumber) && withinRange(ccTriggers.get(ccNumber), ccValue))
+            return true;
+        else
+            return false;
+    }    
 
     if (checkMidiConditions(msg) && withinRange(randRange, randValue))
     {
         if ( previousNote && !(msg.isNoteOn() && previousKeySwitched && msg.getNoteNumber() != *previousNote) )
             return false;
+
         if (msg.isNoteOn() && trigger == SfzTrigger::attack)
             return true;
+
         if (msg.isNoteOff() && (trigger == SfzTrigger::release || trigger == SfzTrigger::release_key))
             return true;
+
         if (msg.isNoteOn() && trigger == SfzTrigger::first && activeNotesInRange == 0)
             return true;
+            
         if (msg.isNoteOn() && trigger == SfzTrigger::legato && activeNotesInRange > 0)
             return true;
     }    

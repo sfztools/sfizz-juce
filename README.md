@@ -69,8 +69,8 @@ The classification follows the list over at https://sfzformat.com/.
 ## Region logic: triggers
 |       opcode       | type | default value |                    range                    |       status       |              tested              |
 | ------------------ | ---- | ------------- | ------------------------------------------- | ------------------ | -------------------------------- |
-| on_loccN, on_hiccN | int  | 0, 127        | 0 - 127                                     | :heavy_check_mark: | :x:                              |
-| trigger            | enum | attack        | attack, release, first, legato, release_key | :heavy_check_mark: | Unit test except `first` and `legato` |
+| on_loccN, on_hiccN | int  | 0, 127        | 0 - 127                                     | :heavy_check_mark: | Unit test                              |
+| trigger            | enum | attack        | attack, release, first, legato, release_key | :heavy_check_mark: | Unit test |
 
 ## Performance parameters: Pitch
 |     opcode      | type | default value |    range     |       status       |   tested    |

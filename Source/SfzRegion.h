@@ -144,8 +144,9 @@ struct SfzRegion
 
     double sampleRate { config::defaultSampleRate };
     int numChannels { 1 };
+
     // TODO : Transform regions to list and put this as atomic
-    int activeVoices { 0 }; 
+    int activeVoices { 0 }; // TODO: deprecate
     std::atomic<int> activeNotesInRange { -1 };
 
     std::vector<SfzOpcode> unknownOpcodes;
