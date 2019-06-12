@@ -8,7 +8,7 @@
     <key>CFBundleIconFile</key>
     <string></string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourcompany.sfizz</string>
+    <string>org.sfztools.sfizz</string>
     <key>CFBundleName</key>
     <string>sfizz</string>
     <key>CFBundleDisplayName</key>
@@ -18,9 +18,9 @@
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>0.0.1</string>
     <key>CFBundleVersion</key>
-    <string>1.0.0</string>
+    <string>0.0.1</string>
     <key>NSHumanReadableCopyright</key>
     <string></string>
     <key>NSHighResolutionCapable</key>
@@ -29,19 +29,19 @@
     <array>
       <dict>
         <key>name</key>
-        <string>yourcompany: sfizz</string>
+        <string>SFZTools: sfizz</string>
         <key>description</key>
-        <string>sfizz</string>
+        <string>SFZ Player</string>
         <key>factoryFunction</key>
         <string>sfizzAUFactory</string>
         <key>manufacturer</key>
-        <string>Manu</string>
+        <string>SFZT</string>
         <key>type</key>
         <string>aumu</string>
         <key>subtype</key>
-        <string>R0cn</string>
+        <string>SFZT</string>
         <key>version</key>
-        <integer>65536</integer>
+        <integer>1</integer>
         <key>resourceUsage</key>
         <dict>
           <key>network.client</key>

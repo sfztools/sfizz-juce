@@ -1,5 +1,8 @@
 # TODO
 
+- Change the name of the shared code / static library to be able to include it
+  in Linux projects
+
 ## macOS X
 
 - Fix build, app crashes for unknown reason
