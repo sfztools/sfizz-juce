@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Sfizz
+GenericName=Juce based SFZ format sampler
+Comment=Open-Source SFZ format sampler
+Exec=sfizz
+Icon=sfizz
+Categories=AudioVideo;Audio;Music;Midi;
