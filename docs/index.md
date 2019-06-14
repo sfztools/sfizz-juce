@@ -1,11 +1,9 @@
 ---
-title: "Home"
+title: "Sfizz"
 lang: "en"
 layout: "home"
 date_fmt: "%B %d, %Y"
 ---
-# Sfizz
-
 <div markdown="1" class="jumbotron p-4 mb-3">
 
 Sfizz is a JUCE based sample player that aims at supporting a healthy part of the
@@ -25,7 +23,7 @@ Check the [Development Status][] page to see which opcodes are currently support
 [(see here)]: https://juce.com/discover/stories/projucer-manual
 
 [![Travis](https://img.shields.io/travis/com/sfztools/sfizz.svg?label=Linux-macOS&style=popout&logo=travis)](https://travis-ci.com/sfztools/sfizz)
-[![AppVeyor](https://img.shields.io/appveyor/ci/redtide/sfizz.svg?label=Windows&style=popout&logo=appveyor)](https://ci.appveyor.com/project/sfztools/sfizz)
+[![AppVeyor](https://img.shields.io/appveyor/ci/sfztools/sfizz.svg?label=Windows&style=popout&logo=appveyor)](https://ci.appveyor.com/project/sfztools/sfizz)
 
 </div>
 
