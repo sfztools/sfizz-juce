@@ -63,7 +63,7 @@ inline constexpr unsigned int hash(const char *s, unsigned int h = Fnv1aBasis)
     return !*s ? h : hash(s + 1, static_cast<unsigned int>((h ^ *s) * static_cast<unsigned long long>(Fnv1aPrime)));
 }
 
-inline constexpr unsigned int hash(const std::string& s, unsigned int h = Fnv1aBasis) { return hash(s.c_str(), h); }
+inline unsigned int hash(const std::string& s, unsigned int h = Fnv1aBasis) { return hash(s.c_str(), h); }
 
 template<class T>
 inline constexpr double centsFactor(T cents, T centsPerOctave = 1200) { return std::pow(2, static_cast<double>(cents) / centsPerOctave); }
