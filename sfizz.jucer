@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="r0cNpL" name="sfizz" projectType="audioplug" jucerVersion="5.4.3"
               cppLanguageStandard="latest" reportAppUsage="0" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
-              version="0.0.1" companyName="SFZTools" companyWebsite="https://sfztools.github.io"
+              version="0.1.0" companyName="SFZTools" companyWebsite="https://sfztools.github.io"
               bundleIdentifier="org.sfztools.sfizz" pluginName="sfizz" pluginDesc="SFZ Player"
               pluginManufacturer="SFZTools" pluginManufacturerCode="SFZT" pluginCode="SFZT"
               aaxIdentifier="org.sfztools.sfizz" pluginAUExportPrefix="sfizzAU">
