@@ -1,5 +1,5 @@
 ---
-title: "Sfizz"
+title: "Home"
 lang: "en"
 layout: "home"
 date_fmt: "%B %d, %Y"

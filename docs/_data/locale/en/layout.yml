@@ -1,17 +1,15 @@
 navigation:
-- title: Docs
-  type: dropdown
-  pages:
-  - title: Development Status
-    url: /status
+- title: Status
+  type: normal
+  url: /status
+
+- title: Downloads
+  type: normal
+  url: /downloads
 
 - title: GitHub Repository
   type: normal
   url: https://github.com/sfztools/sfizz
-
-- title: Downloads
-  type: normal
-  url: https://github.com/sfztools/sfizz/releases
 
 cards:
 - title: Follow us

@@ -38,12 +38,15 @@ url: "https://sfztools.github.io/sfizz"
 
 spdx_license_id: "GPL-3.0-or-later"
 
-organization:
+project:
   name: "Sfizz"
+
+organization:
+  name: "SfzTools"
   url: "https://github.com/sfztools"
 
 authors:
-  content: "PaulFd"
+  content: "Paul Ferrand"
   web: "RedTide"
 
 google:
