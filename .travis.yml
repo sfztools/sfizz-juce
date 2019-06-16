@@ -36,7 +36,7 @@ script:
 
 after_success:
 - export VERSION=$(git describe --tags)
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DEPLOYFILE=sfizz-$VERSION-x86_64.AppImage; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DEPLOYFILE=Sfizz-$VERSION-x86_64.AppImage; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -c -nv "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then chmod +x linuxdeploy-x86_64.AppImage; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then for size in 16 32 48 128 256; do dirname="sfizz/usr/share/icons/hicolor/${size}x${size}/apps"; mkdir -p $dirname; cp ./resources/icons/icon_${size}px.png ./${dirname}/sfizz.png; done; fi
