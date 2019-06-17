@@ -44,3 +44,8 @@ cards:
     url: "https://github.com/sfzinstruments/"
     icon_type: "download"
     icon_category: "fas"
+
+  - title: "RhythmBox"
+    url: "https://sfztools.github.io/rhythmbox/"
+    icon_type: "drum"
+    icon_category: "fas"
