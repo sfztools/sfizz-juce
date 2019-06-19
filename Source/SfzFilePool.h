@@ -104,11 +104,7 @@ public:
     }
     
     void preload(const String& sampleName, int offset = 0, int numSamples = config::preloadSize)
-    {
-        // TODO: if numSamples is negative preload everthing?
-        // Can't really preload 0 samples now?
-        jassert(numSamples > 0);
-        
+    {        
         if (sampleName.startsWith("*"))
             return;
 
@@ -118,7 +114,13 @@ public:
             DBG("Error creating reader for " << sampleName);
             return;
         }
-        const int actualNumSamples = (int) jmin( (int64)numSamples + offset, reader->lengthInSamples);
+        const int actualNumSamples = [offset, numSamples, &reader](){
+            if (numSamples > 0) 
+                return (int) jmin( (int64)numSamples + offset, reader->lengthInSamples);
+            else
+                return static_cast<int>(reader->lengthInSamples);
+        }();
+
         const auto alreadyPreloaded = preloadedData.find(sampleName);
         if (alreadyPreloaded == end(preloadedData) || alreadyPreloaded->second->getNumSamples() < actualNumSamples)
         {

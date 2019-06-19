@@ -109,6 +109,7 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
     uint32_t totalOffset { region->offset };
     if (region->offsetRandom > 0)
         totalOffset += Random::getSystemRandom().nextInt((int)region->offsetRandom);
+        
     sourcePosition = totalOffset;
 
     // Write a short blank in the circular buffer that corresponds to the noteon delay
@@ -134,7 +135,7 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
         initialDelay -= writer.blockSize1 + writer.blockSize2;
     }
 
-    auto preloadedData = filePool.getPreloadedData(region->sample);
+    preloadedData = filePool.getPreloadedData(region->sample);
     if (preloadedData == nullptr)
         return;
 
@@ -181,14 +182,10 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
         return ThreadPoolJob::jobHasFinished;
     }
 
-    if (reader == nullptr)
+    if (preloadedData == nullptr)
     {
-        reader = filePool.createReaderFor(region->sample);
-        if (reader == nullptr) // still null
-        {
-            DBG("Something is wrong with the sample " << region->sample);
-            return ThreadPoolJob::jobHasFinished;
-        }
+        // We should have data in there, so something is wrong
+        return ThreadPoolJob::jobHasFinished;
     }
 
     // We need to delay the source still, so fill in the buffer with zeros some more
@@ -208,19 +205,41 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
     // DBG("Reading " << requiredInputs << " samples for source " << region->sample << "(Remaining " << region->sampleEnd - sourcePosition << ")");
 
     // Source looping logic
+    const auto endOrLoopEnd = std::min(region->sampleEnd, region->loopRange.getEnd());
     while (true)
     {
-        const auto samplesLeft = region->sampleEnd - sourcePosition;
-        const auto samplesLeftInLoop = region->loopRange.getEnd() - sourcePosition;
-        const auto numSamplesToRead = (int)jmin(samplesLeft, samplesLeftInLoop, (int64)freeSpace);
+        const auto samplesLeft = endOrLoopEnd - sourcePosition;
+        const auto numSamplesToRead = (int)std::min(samplesLeft, (int64)freeSpace);
+        const auto preloadedSamplesLeft = static_cast<int64_t>(preloadedData->getNumSamples()) - sourcePosition;
+
+        if (preloadedSamplesLeft > 0)
         {
+            const auto numSamplesToReadPreloaded = std::min(numSamplesToRead, static_cast<int>(preloadedSamplesLeft));
+            AbstractFifo::ScopedWrite writer (fifo, numSamplesToReadPreloaded);
+            copyBuffers(*preloadedData, sourcePosition, buffer, writer.startIndex1, writer.blockSize1);
+            sourcePosition += writer.blockSize1;
+            copyBuffers(*preloadedData, sourcePosition, buffer, writer.startIndex2, writer.blockSize2);
+            sourcePosition += writer.blockSize2;
+            freeSpace -= numSamplesToReadPreloaded;
+        }
+        else if (numSamplesToRead > 0)
+        {
+            if (reader == nullptr)
+            {
+                reader = filePool.createReaderFor(region->sample);
+                if (reader == nullptr) // still null
+                {
+                    DBG("Something is wrong with the sample " << region->sample);
+                    return ThreadPoolJob::jobHasFinished;
+                }
+            }
             AbstractFifo::ScopedWrite writer (fifo, numSamplesToRead);
             reader->read(&buffer, writer.startIndex1, writer.blockSize1, sourcePosition, true, true);
             sourcePosition += writer.blockSize1;
             reader->read(&buffer, writer.startIndex2, writer.blockSize2, sourcePosition, true, true);
             sourcePosition += writer.blockSize2;
+            freeSpace -= numSamplesToRead;
         }
-        freeSpace -= numSamplesToRead;
 
         // We reached the sample end or sample loop end
         if (sourcePosition == region->sampleEnd || sourcePosition == region->loopRange.getEnd() )
@@ -423,6 +442,7 @@ void SfzVoice::reset()
     region = nullptr;
     triggeringMessage.reset();
     reader.reset();
+    preloadedData.reset();
     initialDelay = 0;
     localTime = 0;
     resetResamplers();

@@ -69,6 +69,7 @@ private:
     std::optional<MidiMessage> triggeringMessage;
     SfzRegion* region { nullptr };
     std::unique_ptr<AudioFormatReader> reader { nullptr };
+    std::shared_ptr<AudioBuffer<float>> preloadedData { nullptr };
 
     // Sustain logic
     bool noteIsOff { true };

@@ -355,11 +355,11 @@ const SfzRegion* SfzSynth::getRegionView(int num) const
 
 void SfzSynth::clear()
 {
-	regions.clear();
-	voices.clear();
 	ccNames.clear();
+	regions.clear();
+	for (auto& voice: voices)
+		voice.reset();
 	filePool.clear();
-	initalizeVoices();
 	resetMidiState();
 }
 
