@@ -66,6 +66,12 @@
         "set": "cpp",
         "stack": "cpp",
         "string_view": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "*.tcc": "cpp",
+        "bitset": "cpp",
+        "clocale": "cpp",
+        "cwctype": "cpp",
+        "numeric": "cpp",
+        "cstdarg": "cpp"
     }
 }

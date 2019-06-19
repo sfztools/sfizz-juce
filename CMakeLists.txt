@@ -46,6 +46,7 @@ set(TEST_SOURCES
     Tests/RegionTriggers.cpp
     Tests/FileTests.cpp
     Tests/OpcodeTests.cpp
+    Tests/RegexTests.cpp
     Tests/Main.cpp
 )
 
