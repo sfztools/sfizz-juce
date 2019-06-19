@@ -67,8 +67,8 @@ private:
     SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
-    std::list<SfzRegion> regions;
     std::list<SfzVoice> voices;
+    std::vector<SfzRegion> regions;
     std::vector<File> includedFiles;
     std::vector<int> newGroups;
     CCValueArray ccState;
