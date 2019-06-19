@@ -109,3 +109,11 @@ auto contains(const C& v, const T& x)
 {
     return end(v) != std::find(begin(v), end(v), x);
 }
+
+template<class T>
+String printRange(Range<T> r)
+{
+    String returnedString {};
+    returnedString << "[" << r.getStart() << "," << r.getEnd() << "]";
+    return returnedString;
+}

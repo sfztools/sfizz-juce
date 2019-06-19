@@ -235,14 +235,6 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     
 }
 
-template<class T>
-String printRange(Range<T> r)
-{
-    String returnedString {};
-    returnedString << "[" << r.getStart() << "," << r.getEnd() << "]";
-    return returnedString;
-}
-
 String SfzRegion::stringDescription() const
 {
     String returnedString { sample };
