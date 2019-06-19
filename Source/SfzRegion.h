@@ -147,7 +147,6 @@ struct SfzRegion
 
     // TODO : Transform regions to list and put this as atomic
     int activeVoices { 0 }; // TODO: deprecate
-    std::atomic<int> activeNotesInRange { -1 };
 
     std::vector<SfzOpcode> unknownOpcodes;
     std::shared_ptr<AudioBuffer<float>> preloadedData;
@@ -166,10 +165,12 @@ private:
     bool pitchSwitched { true };
     bool bpmSwitched { true };
     bool aftertouchSwitched { true };
+    int activeNotesInRange { -1 };
 
     int sequenceCounter { 0 };
     bool setupSource();
     void addEndpointsToVelocityCurve();
     void checkInitialConditions();
     JUCE_LEAK_DETECTOR (SfzRegion)
+    
 };
