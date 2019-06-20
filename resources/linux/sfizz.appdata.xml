@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2019 Paul Ferrand <paulfd@outlook.fr> -->
+<component type="desktop">
+ <id>org.sfztools.sfizz</id>
+ <metadata_license>FSFAP</metadata_license>
+ <project_license>GPL-3.0+</project_license>
+ <name>Sfizz</name>
+ <summary>Open-Source SFZ format player</summary>
+ <description>
+  <p>Sfizz is a JUCE based sample player that aims at supporting a healthy part
+  of the .sfz virtual instrument format.</p>
+ </description>
+ <screenshots>
+  <screenshot type="default">
+   <image>https://sfztools.github.io/sfizz/screenshot.png</image>
+   <caption>The main window</caption>
+  </screenshot>
+ </screenshots>
+ <launchable type="desktop-id">sfizz.desktop</launchable>
+ <provides>
+​  <binary>sfizz</binary>
+​ </provides>
+ <keywords>
+  <keyword>ALSA</keyword>
+  <keyword>Audio</keyword>
+  <keyword>JACK</keyword>
+  <keyword>MIDI</keyword>
+  <keyword>Player</keyword>
+  <keyword>Sampler</keyword>
+  <keyword>SFZ</keyword>
+ </keywords>
+ <url type="homepage">https://sfztools.github.io/sfizz</url>
+ <project_group>SfzTools</project_group>
+ <developer_name>Paul Ferrand</developer_name>
+ <update_contact>sfztools@gmail.com</update_contact>
+</component>
