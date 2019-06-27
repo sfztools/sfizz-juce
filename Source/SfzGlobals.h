@@ -50,7 +50,7 @@ namespace config
 namespace SfzRegexes
 {
     inline static std::regex includes { R"V(#include\s*"(.*?)".*$)V" };
-    inline static std::regex defines { R"(#define\s*(\$[a-zA-Z0-9]+)\s+([a-zA-Z0-9]+))" };
+    inline static std::regex defines { R"(#define\s*(\$[a-zA-Z0-9]+)\s+([a-zA-Z0-9]+)(?=\s|$))" };
     inline static std::regex headers { R"(<(.*?)>(.*?)(?=<|$))" };
     inline static std::regex members { R"(([a-zA-Z0-9_]+)=([a-zA-Z0-9-_#.\/\s\\\(\),\*]+)(?![a-zA-Z0-9_]*=))" };
     inline static std::regex opcodeParameters{ R"(([a-zA-Z0-9\_]+?)([0-9]+)$)" };
