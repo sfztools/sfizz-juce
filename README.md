@@ -14,9 +14,9 @@ Check the [documentation page][] for more information.
 [documentation page]: https://sfztools.github.io/sfizz/
 
 ## TODO
-- Write some more tests for the existing functionality that can be tested
+- Crossfades on velocity and keys
+- Crossfades on CC
 - Pitch-related envelopes and resampler
-- Code cleanup
 - Sfz v2 curves
 - EQ
 - Filters
