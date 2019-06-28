@@ -579,6 +579,82 @@ TEST_CASE("Parsing opcodes", "Region tests")
         REQUIRE( region.velocityPoints.back() == std::make_pair<int, float>(127, 0.0f) );
     }
 
+    SECTION("xfin_lokey, xfin_hikey")
+    {
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(0, 0));
+        region.parseOpcode({"xfin_lokey", "4"});
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(4, 4));
+        region.parseOpcode({"xfin_lokey", "128"});
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(127, 127));
+        region.parseOpcode({"xfin_lokey", "59"});
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfin_hikey", "59"});
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(59, 59));
+        region.parseOpcode({"xfin_hikey", "128"});
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfin_hikey", "0"});
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(0, 0));
+        region.parseOpcode({"xfin_hikey", "-1"});
+        REQUIRE(region.crossfadeKeyInRange == Range<uint8_t>(0, 0));
+    }
+
+    SECTION("xfin_lovel, xfin_hivel")
+    {
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(0, 0));
+        region.parseOpcode({"xfin_lovel", "4"});
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(4, 4));
+        region.parseOpcode({"xfin_lovel", "128"});
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(127, 127));
+        region.parseOpcode({"xfin_lovel", "59"});
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfin_hivel", "59"});
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(59, 59));
+        region.parseOpcode({"xfin_hivel", "128"});
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfin_hivel", "0"});
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(0, 0));
+        region.parseOpcode({"xfin_hivel", "-1"});
+        REQUIRE(region.crossfadeVelInRange == Range<uint8_t>(0, 0));
+    }
+
+    SECTION("xfout_lokey, xfout_hikey")
+    {
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(127, 127));
+        region.parseOpcode({"xfout_lokey", "4"});
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(4, 127));
+        region.parseOpcode({"xfout_lokey", "128"});
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(127, 127));
+        region.parseOpcode({"xfout_lokey", "59"});
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfout_hikey", "59"});
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(59, 59));
+        region.parseOpcode({"xfout_hikey", "128"});
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfout_hikey", "0"});
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(0, 0));
+        region.parseOpcode({"xfout_hikey", "-1"});
+        REQUIRE(region.crossfadeKeyOutRange == Range<uint8_t>(0, 0));
+    }
+
+    SECTION("xfout_lovel, xfout_hivel")
+    {
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(127, 127));
+        region.parseOpcode({"xfout_lovel", "4"});
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(4, 127));
+        region.parseOpcode({"xfout_lovel", "128"});
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(127, 127));
+        region.parseOpcode({"xfout_lovel", "59"});
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfout_hivel", "59"});
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(59, 59));
+        region.parseOpcode({"xfout_hivel", "128"});
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(59, 127));
+        region.parseOpcode({"xfout_hivel", "0"});
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(0, 0));
+        region.parseOpcode({"xfout_hivel", "-1"});
+        REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(0, 0));
+    }
+
     SECTION("pitch_keycenter")
     {
         REQUIRE( region.pitchKeycenter == 60 );

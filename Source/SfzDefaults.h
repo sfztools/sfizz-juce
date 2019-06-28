@@ -27,6 +27,7 @@ enum class SfzTrigger { attack, release, release_key, first, legato };
 enum class SfzLoopMode { no_loop, one_shot, loop_continuous, loop_sustain };
 enum class SfzOffMode { fast, normal };
 enum class SfzVelocityOverride { current, previous };
+enum class SfzCrossfadeCurve { gain, power };
 
 namespace SfzDefault
 {
@@ -98,6 +99,12 @@ namespace SfzDefault
     inline constexpr Range<float> ampVelcurveRange { 0.0, 1.0 };
     inline constexpr float ampRandom { 0.0 };
     inline constexpr Range<float> ampRandomRange { 0.0, 24.0 };
+    inline constexpr Range<uint8_t> crossfadeKeyInRange { 0, 0 };
+    inline constexpr Range<uint8_t> crossfadeKeyOutRange { 127, 127 };
+    inline constexpr Range<uint8_t> crossfadeVelInRange { 0, 0 };
+    inline constexpr Range<uint8_t> crossfadeVelOutRange { 127, 127 };
+    inline constexpr SfzCrossfadeCurve crossfadeKeyCurve { SfzCrossfadeCurve::power };
+    inline constexpr SfzCrossfadeCurve crossfadeVelCurve { SfzCrossfadeCurve::power };
 
      // Performance parameters: pitch
     inline constexpr uint8_t pitchKeycenter { 60 };

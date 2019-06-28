@@ -194,6 +194,40 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
                 velocityPoints.emplace_back(*opcode.parameter, *value);
         }
         break;
+    case hash("xfin_lokey"): setRangeStartFromOpcode(opcode, crossfadeKeyInRange, SfzDefault::keyRange); break;
+    case hash("xfin_hikey"): setRangeEndFromOpcode(opcode, crossfadeKeyInRange, SfzDefault::keyRange); break;
+    case hash("xfout_lokey"): setRangeStartFromOpcode(opcode, crossfadeKeyOutRange, SfzDefault::keyRange); break;
+    case hash("xfout_hikey"): setRangeEndFromOpcode(opcode, crossfadeKeyOutRange, SfzDefault::keyRange); break;
+    case hash("xfin_lovel"): setRangeStartFromOpcode(opcode, crossfadeVelInRange, SfzDefault::velocityRange); break;
+    case hash("xfin_hivel"): setRangeEndFromOpcode(opcode, crossfadeVelInRange, SfzDefault::velocityRange); break;
+    case hash("xfout_lovel"): setRangeStartFromOpcode(opcode, crossfadeVelOutRange, SfzDefault::velocityRange); break;
+    case hash("xfout_hivel"): setRangeEndFromOpcode(opcode, crossfadeVelOutRange, SfzDefault::velocityRange); break;
+    case hash("xf_keycurve"):
+        switch (hash(opcode.value))
+        {
+        case hash("power"):
+            crossfadeKeyCurve = SfzCrossfadeCurve::power;
+            break;
+        case hash("gain"):
+            crossfadeKeyCurve = SfzCrossfadeCurve::gain;
+            break;
+        default:
+            DBG("Unknown crossfade power curve: " << opcode.value);
+        }
+        break;
+    case hash("xf_velcurve"):
+        switch (hash(opcode.value))
+        {
+        case hash("power"):
+            crossfadeKeyCurve = SfzCrossfadeCurve::power;
+            break;
+        case hash("gain"):
+            crossfadeKeyCurve = SfzCrossfadeCurve::gain;
+            break;
+        default:
+            DBG("Unknown crossfade power curve: " << opcode.value);
+        }
+        break;
 
     // Performance parameters: pitch
     case hash("pitch_keycenter"): setValueFromOpcode(opcode, pitchKeycenter, SfzDefault::keyRange); break;

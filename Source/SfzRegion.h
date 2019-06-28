@@ -128,9 +128,16 @@ struct SfzRegion
     float ampVeltrack { SfzDefault::ampVeltrack }; // amp_keytrack
     std::vector<std::pair<int, float>> velocityPoints; // amp_velcurve_N
     float ampRandom { SfzDefault::ampRandom }; // amp_random
+    Range<uint8_t> crossfadeKeyInRange { SfzDefault::crossfadeKeyInRange };
+    Range<uint8_t> crossfadeKeyOutRange { SfzDefault::crossfadeKeyOutRange };
+    Range<uint8_t> crossfadeVelInRange { SfzDefault::crossfadeVelInRange };
+    Range<uint8_t> crossfadeVelOutRange { SfzDefault::crossfadeVelOutRange };
+    SfzCrossfadeCurve crossfadeKeyCurve { SfzDefault::crossfadeKeyCurve };
+    SfzCrossfadeCurve crossfadeVelCurve { SfzDefault::crossfadeVelCurve };
 
-    // Performance parameters: pitch
-    uint8_t pitchKeycenter{ SfzDefault::pitchKeycenter }; // pitch_keycenter
+
+        // Performance parameters: pitch
+        uint8_t pitchKeycenter{SfzDefault::pitchKeycenter}; // pitch_keycenter
     int pitchKeytrack{ SfzDefault::pitchKeytrack }; // pitch_keytrack
     int pitchRandom{ SfzDefault::pitchRandom }; // pitch_random
     int pitchVeltrack{ SfzDefault::pitchVeltrack }; // pitch_veltrack
