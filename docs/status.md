@@ -86,17 +86,23 @@ The classification follows the list over at <https://sfzformat.com/>.
 
 ## Performance parameters: Amplifier
 
-|          Opcode           | Type  | Default Value |   Range    |       Status       |   Tested    |
-| ------------------------- | ----- | ------------- | ---------- | ------------------ | ----------- |
-| pan, pan_oncc             | float | 0             | -100 - 100 | :heavy_check_mark: | Manual test |
-| position, position_oncc   | float | 0             | -100 - 100 | :heavy_check_mark: | Manual test |
-| width, width_oncc         | float | 100           | -100 - 100 | :heavy_check_mark: | Manual test |
-| volume, volume_oncc       | float | 0 dB          | -144 - 6   | :x:                | :x:         |
-| amplitude, amplitude_oncc | float | 100           | 0 - 100    | :heavy_check_mark: | Manual test |
-| amp_keytrack              | float | 0             | -100 - 100 | :x:                | :x:         |
-| amp_keycenter             | int   | 60 (C4)       | 0 - 127    | :heavy_check_mark: | Manual test |
-| amp_veltrack              | float | 0             | -100 - 100 | :heavy_check_mark: | Manual test |
-| amp_velcurve_N            | float | 0             | 0 - 1      | :heavy_check_mark: | Manual test |
+|          Opcode           | Type  | Default Value |    Range    |       Status       |   Tested    |
+| ------------------------- | ----- | ------------- | ----------- | ------------------ | ----------- |
+| pan, pan_oncc             | float | 0             | -100 - 100  | :heavy_check_mark: | Manual test |
+| position, position_oncc   | float | 0             | -100 - 100  | :heavy_check_mark: | Manual test |
+| width, width_oncc         | float | 100           | -100 - 100  | :heavy_check_mark: | Manual test |
+| volume, volume_oncc       | float | 0 dB          | -144 - 6    | :x:                | :x:         |
+| amplitude, amplitude_oncc | float | 100           | 0 - 100     | :heavy_check_mark: | Manual test |
+| amp_keytrack              | float | 0             | -100 - 100  | :x:                | :x:         |
+| amp_keycenter             | int   | 60 (C4)       | 0 - 127     | :heavy_check_mark: | Manual test |
+| amp_veltrack              | float | 0             | -100 - 100  | :heavy_check_mark: | Manual test |
+| amp_velcurve_N            | float | 0             | 0 - 1       | :heavy_check_mark: | Manual test |
+| xfin_lokey, xfin_hikey    | int   | 0, 0          | 0 - 127     | :x:                | :x:         |
+| xfout_lokey, xfout_hikey  | int   | 127, 127      | 0 - 127     | :x:                | :x:         |
+| xfin_lovel, xfin_hivel    | int   | 0, 0          | 0 - 127     | :x:                | :x:         |
+| xfout_lovel, xfout_hivel  | int   | 127, 127      | 0 - 127     | :x:                | :x:         |
+| xf_keycurve               | enum  | power         | power, gain | :x:                | :x:         |
+| xf_velcurve               | enum  | power         | power, gain | :x:                | :x:         |
 
 ## Modulation: Envelope generators
 
