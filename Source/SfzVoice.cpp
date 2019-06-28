@@ -40,7 +40,6 @@ void SfzVoice::release(int timestamp, bool useFastRelease)
 {
     if (state != SfzVoiceState::release)
     {
-        region->activeVoices--;
         state = SfzVoiceState::release;
         amplitudeEGEnvelope.release(timestamp, useFastRelease);  
     }
@@ -59,9 +58,7 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
         return static_cast<int>(timeInSeconds * sampleRate);
     };
 
-    DBG("Starting voice with delay " << sampleDelay);
     region = &newRegion;
-    region->activeVoices++;
     triggeringMessage = msg;
     noteIsOff = false;
     state = SfzVoiceState::playing;

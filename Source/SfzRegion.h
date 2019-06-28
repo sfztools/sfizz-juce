@@ -145,9 +145,6 @@ struct SfzRegion
     double sampleRate { config::defaultSampleRate };
     int numChannels { 1 };
 
-    // TODO : Transform regions to list and put this as atomic
-    int activeVoices { 0 }; // TODO: deprecate
-
     std::vector<SfzOpcode> unknownOpcodes;
     std::shared_ptr<AudioBuffer<float>> preloadedData;
 private:
