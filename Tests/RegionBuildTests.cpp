@@ -655,6 +655,34 @@ TEST_CASE("Parsing opcodes", "Region tests")
         REQUIRE(region.crossfadeVelOutRange == Range<uint8_t>(0, 0));
     }
 
+    SECTION("xf_keycurve")
+    {
+        REQUIRE(region.crossfadeKeyCurve == SfzCrossfadeCurve::power);
+        region.parseOpcode({"xf_keycurve", "gain"});
+        REQUIRE(region.crossfadeKeyCurve == SfzCrossfadeCurve::gain);
+        region.parseOpcode({"xf_keycurve", "power"});
+        REQUIRE(region.crossfadeKeyCurve == SfzCrossfadeCurve::power);
+        region.parseOpcode({"xf_keycurve", "something"});
+        REQUIRE(region.crossfadeKeyCurve == SfzCrossfadeCurve::power);
+        region.parseOpcode({"xf_keycurve", "gain"});
+        region.parseOpcode({"xf_keycurve", "something"});
+        REQUIRE(region.crossfadeKeyCurve == SfzCrossfadeCurve::gain);
+    }
+
+    SECTION("xf_velcurve")
+    {
+        REQUIRE(region.crossfadeVelCurve == SfzCrossfadeCurve::power);
+        region.parseOpcode({"xf_velcurve", "gain"});
+        REQUIRE(region.crossfadeVelCurve == SfzCrossfadeCurve::gain);
+        region.parseOpcode({"xf_velcurve", "power"});
+        REQUIRE(region.crossfadeVelCurve == SfzCrossfadeCurve::power);
+        region.parseOpcode({"xf_velcurve", "something"});
+        REQUIRE(region.crossfadeVelCurve == SfzCrossfadeCurve::power);
+        region.parseOpcode({"xf_velcurve", "gain"});
+        region.parseOpcode({"xf_velcurve", "something"});
+        REQUIRE(region.crossfadeVelCurve == SfzCrossfadeCurve::gain);
+    }
+
     SECTION("pitch_keycenter")
     {
         REQUIRE( region.pitchKeycenter == 60 );

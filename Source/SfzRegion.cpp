@@ -219,10 +219,10 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
         switch (hash(opcode.value))
         {
         case hash("power"):
-            crossfadeKeyCurve = SfzCrossfadeCurve::power;
+            crossfadeVelCurve = SfzCrossfadeCurve::power;
             break;
         case hash("gain"):
-            crossfadeKeyCurve = SfzCrossfadeCurve::gain;
+            crossfadeVelCurve = SfzCrossfadeCurve::gain;
             break;
         default:
             DBG("Unknown crossfade power curve: " << opcode.value);
