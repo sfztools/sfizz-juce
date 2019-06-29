@@ -65,9 +65,9 @@ struct SfzRegion
             baseGaindB += velocityGaindB(lastNoteVelocities[msg.getNoteNumber()]);
         return Decibels::decibelsToGain(baseGaindB);
     }
-    bool isRelease() const { return trigger == SfzTrigger::release || trigger == SfzTrigger::release_key; }
-    bool isSwitchedOn() const;
-    bool isGenerator() { return sample.startsWithChar('*'); }
+    bool isRelease() const noexcept { return trigger == SfzTrigger::release || trigger == SfzTrigger::release_key; }
+    bool isSwitchedOn() const noexcept;
+    bool isGenerator() const noexcept { return sample.startsWithChar('*'); }
 
     // Sound source: sample playback
     String sample {}; // Sample
