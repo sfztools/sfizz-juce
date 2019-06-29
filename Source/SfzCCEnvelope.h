@@ -48,19 +48,22 @@ public:
         fifo.setTotalSize(maximumSize);
     }
 
-    void setTransform(std::function<float(float)> transform)
+    void setTransform(std::function<float(float)> transform) noexcept
     {
         transformValue = transform;
     }
 
-    void reset(uint8_t ccValue = SfzDefault::cc)
+    void reset(uint8_t ccValue = SfzDefault::cc) noexcept
     {
         localTime = 0;
         smoothedValue.setCurrentAndTargetValue(normalizeCC(ccValue));
     }
 
-    void addEvent(int timestamp, uint8_t ccValue)
+    void addEvent(int timestamp, uint8_t ccValue) noexcept
     {
+        if (fifo.getFreeSpace() == 0)
+            return;
+
         AbstractFifo::ScopedWrite writer { fifo, 1 };
         if (writer.blockSize1 == 1)
             points.emplace(begin(points) + writer.startIndex1, timestamp, ccValue);
@@ -68,7 +71,7 @@ public:
             points.emplace(begin(points) + writer.startIndex2, timestamp, ccValue);
     };
 
-    float getNextValue()
+    float getNextValue() noexcept
     {
         if (!smoothedValue.isSmoothing() && fifo.getNumReady() > 0)
         {
@@ -83,7 +86,7 @@ public:
     }
 
 private:
-    EnvelopeEvent readEventFromFifo()
+    EnvelopeEvent readEventFromFifo() noexcept
     {
         AbstractFifo::ScopedRead reader { fifo, 1 };
         if (reader.blockSize1 == 1)
