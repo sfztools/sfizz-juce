@@ -34,7 +34,7 @@ void defineTest(const std::string& line, const std::string& variable, const std:
     REQUIRE(defineMatch[2] == value);
 }
 
-void defineFails(const std::string& line)
+void defineFail(const std::string& line)
 {
     std::smatch defineMatch;
     auto found = std::regex_search(line, defineMatch, SfzRegexes::defines);
@@ -48,9 +48,9 @@ TEST_CASE("#define Regex", "Regex Tests")
     defineTest("#define $alphanum asr1t44", "$alphanum", "asr1t44");
     defineTest("#define  $whitespace   asr1t44   ", "$whitespace", "asr1t44");
     defineTest("#define $lazyMatching  matched  bfasd ", "$lazyMatching", "matched");
-    defineFails("#define $symbols# 1");
-    defineFails("#define $symbolsAgain $1");
-    defineFails("#define $trailingSymbols 1$");
+    defineFail("#define $symbols# 1");
+    defineFail("#define $symbolsAgain $1");
+    defineFail("#define $trailingSymbols 1$");
 }
 
 TEST_CASE("Header Regex", "Regex Tests")
