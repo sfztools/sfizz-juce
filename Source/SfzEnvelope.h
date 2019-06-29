@@ -25,7 +25,7 @@
 #include "SfzDefaults.h"
 #include <optional>
 
-inline float ccSwitchedValue(const CCValueArray& ccValues, const std::optional<CCValuePair>& ccSwitch, float value)
+inline float ccSwitchedValue(const CCValueArray& ccValues, const std::optional<CCValuePair>& ccSwitch, float value) noexcept
 {
     if (ccSwitch)
         return value + ccSwitch->second * normalizeCC(ccValues[ccSwitch->first]);
@@ -59,31 +59,31 @@ struct SfzEnvelopeGeneratorDescription
     std::optional<CCValuePair> ccStart;
     std::optional<CCValuePair> ccSustain;
 
-    float getAttack(const CCValueArray& ccValues, uint8_t velocity) const 
+    float getAttack(const CCValueArray &ccValues, uint8_t velocity) const noexcept
     {
         return ccSwitchedValue(ccValues, ccAttack, attack) + normalizeCC(velocity)*vel2attack;
     }
-    float getDecay(const CCValueArray& ccValues, uint8_t velocity) const 
+    float getDecay(const CCValueArray &ccValues, uint8_t velocity) const noexcept
     {
         return ccSwitchedValue(ccValues, ccDecay, decay) + normalizeCC(velocity)*vel2decay;
     }
-    float getDelay(const CCValueArray& ccValues, uint8_t velocity) const 
+    float getDelay(const CCValueArray &ccValues, uint8_t velocity) const noexcept
     {
         return ccSwitchedValue(ccValues, ccDelay, delay) + normalizeCC(velocity)*vel2delay;
     }
-    float getHold(const CCValueArray& ccValues, uint8_t velocity) const 
+    float getHold(const CCValueArray &ccValues, uint8_t velocity) const noexcept
     {
         return ccSwitchedValue(ccValues, ccHold, hold) + normalizeCC(velocity)*vel2hold;
     }
-    float getRelease(const CCValueArray& ccValues, uint8_t velocity) const 
+    float getRelease(const CCValueArray &ccValues, uint8_t velocity) const noexcept
     {
         return ccSwitchedValue(ccValues, ccRelease, release) + normalizeCC(velocity)*vel2release;
     }
-    float getStart(const CCValueArray& ccValues, uint8_t velocity) const 
+    float getStart(const CCValueArray &ccValues, uint8_t velocity) const noexcept
     {
         return ccSwitchedValue(ccValues, ccStart, start);
     }
-    float getSustain(const CCValueArray& ccValues, uint8_t velocity) const 
+    float getSustain(const CCValueArray &ccValues, uint8_t velocity) const noexcept
     {
         return ccSwitchedValue(ccValues, ccSustain, sustain) + normalizeCC(velocity)*vel2sustain;
     }
@@ -92,7 +92,7 @@ struct SfzEnvelopeGeneratorDescription
 class SfzEnvelopeGeneratorValue
 {
 public:
-    SfzEnvelopeGeneratorValue()
+    SfzEnvelopeGeneratorValue() noexcept
     {
         attackEnvelopeValue.reset(1);
         attackEnvelopeValue.setCurrentAndTargetValue(0.0f);
@@ -104,9 +104,9 @@ public:
         releaseEnvelopeValue.setCurrentAndTargetValue(1.0f);
         releaseEnvelopeValue.setTargetValue(config::virtuallyZero);
     }
-    void setSampleRate(double rate) { sampleRate = rate; }
+    void setSampleRate(double rate) noexcept { sampleRate = rate; }
 
-    void prepare(const SfzEnvelopeGeneratorDescription& egDescription, const CCValueArray& ccValues, uint8_t velocity, uint32_t additionalDelay = 0)
+    void prepare(const SfzEnvelopeGeneratorDescription& egDescription, const CCValueArray& ccValues, uint8_t velocity, uint32_t additionalDelay = 0) noexcept
     {
         auto secondsToSamples = [this](auto timeInSeconds) { 
             return static_cast<int>(timeInSeconds * sampleRate);
@@ -129,12 +129,12 @@ public:
 
     enum class EGState { attack, release };
 
-    bool isSmoothing()
+    bool isSmoothing() noexcept
     {
         return releaseEnvelopeValue.isSmoothing();
     }
 
-    float getNextValue()
+    float getNextValue() noexcept
     {
         float envelopeGain { config::virtuallyZero };
 
@@ -176,7 +176,7 @@ public:
         return envelopeGain;
     }
 
-    void release(uint32_t delay = 0, bool fastRelease = false)
+    void release(uint32_t delay = 0, bool fastRelease = false) noexcept
     {
         if (fastRelease)
             releaseEnvelopeValue.reset(static_cast<int>(config::fastReleaseDuration * sampleRate));
