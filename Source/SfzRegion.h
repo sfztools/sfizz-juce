@@ -55,15 +55,61 @@ struct SfzRegion
             pitchVariationInCents += Random::getSystemRandom().nextInt((int)pitchRandom * 2) - pitchRandom; // random pitch changes
         return centsFactor(pitchVariationInCents);
     }
-    float computeBaseGain(const MidiMessage& msg) const
+    float computeBaseGain(const MidiMessage& msg) const noexcept
     {
         float baseGaindB { volume };
         baseGaindB += (2 * Random::getSystemRandom().nextFloat() - 1) * ampRandom;
-        if (trigger != SfzTrigger::release_key)
-            baseGaindB += velocityGaindB(msg.getVelocity());
-        else
+        
+        if (trigger == SfzTrigger::release_key)
             baseGaindB += velocityGaindB(lastNoteVelocities[msg.getNoteNumber()]);
-        return Decibels::decibelsToGain(baseGaindB);
+        else
+            baseGaindB += velocityGaindB(msg.getVelocity());
+        auto baseGain = Decibels::decibelsToGain(baseGaindB);
+
+        if (msg.getNoteNumber() < crossfadeKeyInRange.getStart())
+            baseGain = 0;
+        else if (msg.getNoteNumber() < crossfadeKeyInRange.getEnd())
+        {
+            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeKeyInRange.getStart()) / crossfadeKeyInRange.getLength();
+            if (crossfadeKeyCurve == SfzCrossfadeCurve::power)
+                baseGain *= sqrt(crossfadePosition);
+            if (crossfadeKeyCurve == SfzCrossfadeCurve::gain)
+                baseGain *= crossfadePosition;
+        }
+
+        if (msg.getNoteNumber() > crossfadeKeyOutRange.getEnd())
+            baseGain = 0;
+        else if (msg.getNoteNumber() > crossfadeKeyOutRange.getStart())
+        {
+            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeKeyOutRange.getStart()) / crossfadeKeyOutRange.getLength();
+            if (crossfadeKeyCurve == SfzCrossfadeCurve::power)
+                baseGain *= sqrt(1 - crossfadePosition);
+            if (crossfadeKeyCurve == SfzCrossfadeCurve::gain)
+                baseGain *= 1 - crossfadePosition;
+        }
+
+        if (msg.isNoteOn() && msg.getVelocity() < crossfadeVelInRange.getStart())
+            baseGain = 0;
+        else if (msg.isNoteOn() && msg.getVelocity() < crossfadeVelInRange.getEnd())
+        {
+            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeVelInRange.getStart()) / crossfadeVelInRange.getLength();
+            if (crossfadeVelCurve == SfzCrossfadeCurve::power)
+                baseGain *= sqrt(crossfadePosition);
+            if (crossfadeVelCurve == SfzCrossfadeCurve::gain)
+                baseGain *= crossfadePosition;
+        }
+
+        if (msg.isNoteOn() && msg.getVelocity() > crossfadeVelOutRange.getEnd())
+            baseGain = 0;
+        else if (msg.isNoteOn() && msg.getVelocity() > crossfadeVelOutRange.getStart())
+        {
+            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeVelOutRange.getStart()) / crossfadeVelOutRange.getLength();
+            if (crossfadeVelCurve == SfzCrossfadeCurve::power)
+                baseGain *= sqrt(1 - crossfadePosition);
+            if (crossfadeVelCurve == SfzCrossfadeCurve::gain)
+                baseGain *= 1 - crossfadePosition;
+        }
+        return baseGain;
     }
     bool isRelease() const noexcept { return trigger == SfzTrigger::release || trigger == SfzTrigger::release_key; }
     bool isSwitchedOn() const noexcept;
