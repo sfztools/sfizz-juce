@@ -70,6 +70,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
 
     // Instrument settings: voice lifecycle
     case hash("group"): setValueFromOpcode(opcode, group, SfzDefault::groupRange); break;
+    case hash("offby"):
     case hash("off_by"): setValueFromOpcode(opcode, offBy, SfzDefault::groupRange); break;
     case hash("off_mode"):
         switch(hash(opcode.value))
