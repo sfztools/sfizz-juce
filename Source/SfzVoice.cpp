@@ -166,24 +166,17 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
         return ThreadPoolJob::jobHasFinished;
     }
 
+    // The region has to be set before reading data
     if (region == nullptr)
-    {
-        // The region has to be set before reading data
-        jassertfalse;
         return ThreadPoolJob::jobHasFinished;
-    }
 
+    // Nothing to preload here
     if (region->isGenerator())
-    {
-        // Nothing to preload here
         return ThreadPoolJob::jobHasFinished;
-    }
 
+    // We should have data in there, so something is wrong
     if (preloadedData == nullptr)
-    {
-        // We should have data in there, so something is wrong
         return ThreadPoolJob::jobHasFinished;
-    }
 
     // We need to delay the source still, so fill in the buffer with zeros some more
     if (initialDelay > 0)
@@ -192,9 +185,8 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
         initialDelay -= writer.blockSize1 + writer.blockSize2;
     }
     
-    auto freeSpace = fifo.getFreeSpace();
     // The buffer is full: nothing to do
-    if (freeSpace == 0)
+    if (fifo.getFreeSpace() == 0)
         return ThreadPoolJob::jobHasFinished;
 
     jassert(sourcePosition <= region->sampleEnd && sourcePosition <= region->loopRange.getEnd());
@@ -206,18 +198,17 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
     while (true)
     {
         const auto samplesLeft = endOrLoopEnd - sourcePosition;
-        const auto numSamplesToRead = (int)std::min(samplesLeft, (int64)freeSpace);
-        const auto preloadedSamplesLeft = static_cast<int64_t>(preloadedData->getNumSamples()) - sourcePosition;
+        const auto numSamplesToRead = (int)std::min(samplesLeft, (int64)fifo.getFreeSpace());
+        const auto preloadedSamplesLeft = (int)((int64)preloadedData->getNumSamples() - sourcePosition);
 
         if (preloadedSamplesLeft > 0)
         {
-            const auto numSamplesToReadPreloaded = std::min(numSamplesToRead, static_cast<int>(preloadedSamplesLeft));
+            const auto numSamplesToReadPreloaded = std::min(numSamplesToRead, preloadedSamplesLeft);
             AbstractFifo::ScopedWrite writer (fifo, numSamplesToReadPreloaded);
             copyBuffers(*preloadedData, sourcePosition, buffer, writer.startIndex1, writer.blockSize1);
             sourcePosition += writer.blockSize1;
             copyBuffers(*preloadedData, sourcePosition, buffer, writer.startIndex2, writer.blockSize2);
             sourcePosition += writer.blockSize2;
-            freeSpace -= numSamplesToReadPreloaded;
         }
         else if (numSamplesToRead > 0)
         {
@@ -235,7 +226,6 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
             sourcePosition += writer.blockSize1;
             reader->read(&buffer, writer.startIndex2, writer.blockSize2, sourcePosition, true, true);
             sourcePosition += writer.blockSize2;
-            freeSpace -= numSamplesToRead;
         }
 
         // We reached the sample end or sample loop end
@@ -258,8 +248,8 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
                 break;
             }
         }
-        
-        if (freeSpace == 0)
+
+        if (fifo.getFreeSpace() == 0)
             break;
 
         if (shouldExit())
