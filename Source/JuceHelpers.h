@@ -74,7 +74,7 @@ private:
 };
 
 template<class ValueType, class T>
-bool withinRange(Range<ValueType> r, T value)
+bool withinRange(Range<ValueType> r, T value) noexcept
 {
     return r.getStart() <= value &&  value <= r.getEnd();
 }
