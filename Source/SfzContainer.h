@@ -29,7 +29,7 @@ public:
     SfzContainer(const ValueType& defaultValue)
     : defaultValue(defaultValue) { }
 
-    const ValueType& getWithDefault(int index) const
+    const ValueType &getWithDefault(int index) const noexcept
     {
         auto it = container.find(index);
         if (it == end(container))
@@ -42,17 +42,17 @@ public:
         }
     }
 
-    bool contains(int index) const
+    bool contains(int index) const noexcept
     {
         return container.find(index) != end(container);
     }
 
-    const ValueType& get(int index) const
+    const ValueType &at(int index) const
     {
         return container.at(index);
     }
-    
-    ValueType& operator[](const int& key)
+
+    ValueType &operator[](const int &key) noexcept
     {
         if (!contains(key))
             container.emplace(key, defaultValue);

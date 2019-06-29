@@ -403,7 +403,7 @@ bool SfzRegion::appliesTo(const MidiMessage& msg, float randValue) const
         const auto ccNumber = msg.getControllerNumber();
         const auto ccValue = static_cast<uint8_t>(msg.getControllerValue());
 
-        if (ccTriggers.contains(ccNumber) && withinRange(ccTriggers.get(ccNumber), ccValue))
+        if (ccTriggers.contains(ccNumber) && withinRange(ccTriggers.at(ccNumber), ccValue))
             return true;
         else
             return false;

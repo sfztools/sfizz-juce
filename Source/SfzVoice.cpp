@@ -289,7 +289,7 @@ void SfzVoice::processMidi(MidiMessage& msg, int timestamp)
 
         if (triggeringMessage->isController()
             && triggeringMessage->getControllerNumber() == ccIdx
-            && !withinRange(region->ccTriggers.get(ccIdx), ccValue))
+            && !withinRange(region->ccTriggers.at(ccIdx), ccValue))
         {
             noteIsOff = true;
         }
