@@ -392,27 +392,15 @@ void SfzSynth::renderNextBlock(AudioBuffer<float>& outputAudio, const MidiBuffer
 	const auto numSamples = outputAudio.getNumSamples();
 	while (it.getNextEvent(msg, timestamp))
 	{
-		// TODO: check this up
-		// High resolution MIDI stuff...
-		// if (msg.isController() && msg.getControllerNumber() == 88)
-		// 	continue;
-
+		// DBG("[Timestamp " << timestamp << " ] Midi event: " << msg.getDescription()); 
 		if (msg.isController())
 			ccState[msg.getControllerNumber()] = msg.getControllerValue();
 
-		// DBG("Midi timestamp " << timestamp); 
-		DBG("[Timestamp " << timestamp << " ] Midi event: " << msg.getDescription()); 
-		// Process MIDI for the existing voices
 		for (auto& voice: voices)
 			voice.processMidi(msg, timestamp);
 
-		// Update the region activation for the message
 		for (auto& region: regions)
 			region.updateSwitches(msg);
-
-		// DEBUG TRAP
-		// auto numActiveRegions = std::count_if(begin(regions), end(regions), [](auto& region){ return region.isSwitchedOn(); });
-		// DBG("Active regions: " << numActiveRegions);
 
 		checkRegionsForActivation(msg, timestamp);        
 	}

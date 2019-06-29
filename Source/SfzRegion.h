@@ -136,8 +136,8 @@ struct SfzRegion
     SfzCrossfadeCurve crossfadeVelCurve { SfzDefault::crossfadeVelCurve };
 
 
-        // Performance parameters: pitch
-        uint8_t pitchKeycenter{SfzDefault::pitchKeycenter}; // pitch_keycenter
+    // Performance parameters: pitch
+    uint8_t pitchKeycenter{SfzDefault::pitchKeycenter}; // pitch_keycenter
     int pitchKeytrack{ SfzDefault::pitchKeytrack }; // pitch_keytrack
     int pitchRandom{ SfzDefault::pitchRandom }; // pitch_random
     int pitchVeltrack{ SfzDefault::pitchVeltrack }; // pitch_veltrack
