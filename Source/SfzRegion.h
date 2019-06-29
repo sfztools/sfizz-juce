@@ -38,14 +38,14 @@ struct SfzRegion
     SfzRegion() = delete;
     SfzRegion(const File& root, SfzFilePool& filePool);
     void parseOpcode(const SfzOpcode& opcode);
-    String stringDescription() const;
-    bool checkMidiConditions(const MidiMessage& msg) const;
-    void updateSwitches(const MidiMessage& msg);
-    bool appliesTo(const MidiMessage& msg, float randValue) const;
+    String stringDescription() const noexcept;
+    bool checkMidiConditions(const MidiMessage& msg) const noexcept;
+    void updateSwitches(const MidiMessage& msg) noexcept;
+    bool appliesTo(const MidiMessage& msg, float randValue) const noexcept;
     bool prepare();
-    bool isStereo() const;
-    float velocityGaindB(int8 velocity) const;
-    double computeBasePitchVariation(const MidiMessage& msg) const
+    bool isStereo() const noexcept;
+    float velocityGaindB(int8 velocity) const noexcept;
+    double computeBasePitchVariation(const MidiMessage& msg) const noexcept
     {
         auto pitchVariationInCents = pitchKeytrack * (msg.getNoteNumber() - (int)pitchKeycenter); // note difference with pitch center
         pitchVariationInCents += tune; // sample tuning

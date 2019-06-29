@@ -269,7 +269,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     
 }
 
-String SfzRegion::stringDescription() const
+String SfzRegion::stringDescription() const noexcept
 {
     String returnedString { sample };
     if (keyRange != SfzDefault::keyRange)               { returnedString << " keyRange: " << printRange(keyRange); }
@@ -280,7 +280,7 @@ String SfzRegion::stringDescription() const
     return returnedString;
 }
 
-bool SfzRegion::checkMidiConditions(const MidiMessage& msg) const
+bool SfzRegion::checkMidiConditions(const MidiMessage &msg) const noexcept
 {
     auto velocity = msg.getVelocity();
     bool keyOk = withinRange(keyRange, msg.getNoteNumber());
@@ -290,7 +290,7 @@ bool SfzRegion::checkMidiConditions(const MidiMessage& msg) const
 }
 
 // TODO: rename this function
-void SfzRegion::updateSwitches(const MidiMessage& msg)
+void SfzRegion::updateSwitches(const MidiMessage &msg) noexcept
 {
     if (msg.isNoteOn() && withinRange(keyswitchRange, msg.getNoteNumber()))
     {
@@ -383,7 +383,7 @@ void SfzRegion::updateSwitches(const MidiMessage& msg)
     }
 }
 
-bool SfzRegion::appliesTo(const MidiMessage& msg, float randValue) const
+bool SfzRegion::appliesTo(const MidiMessage &msg, float randValue) const noexcept
 {
     // You have to call prepare before trying to activate the region
     jassert(prepared);
@@ -527,12 +527,12 @@ void SfzRegion::checkInitialConditions()
         previousKeySwitched = false;
 }
 
-bool SfzRegion::isStereo() const
+bool SfzRegion::isStereo() const noexcept
 {
     return numChannels == 2;
 }
 
-float SfzRegion::velocityGaindB(int8 velocity) const
+float SfzRegion::velocityGaindB(int8 velocity) const noexcept
 {
     float gaindB { 0.0 };
     if (velocityPoints.size() > 0)
@@ -556,7 +556,7 @@ float SfzRegion::velocityGaindB(int8 velocity) const
     return gaindB;
 }
 
-bool SfzRegion::isSwitchedOn() const
+bool SfzRegion::isSwitchedOn() const noexcept
 {
     return  keySwitched 
             && previousKeySwitched 
