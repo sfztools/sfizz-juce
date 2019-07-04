@@ -49,11 +49,11 @@ namespace config
 
 namespace SfzRegexes
 {
-    inline static std::regex includes { R"V(#include\s*"(.*?)".*$)V" };
-    inline static std::regex defines { R"(#define\s*(\$[a-zA-Z0-9]+)\s+([a-zA-Z0-9]+)(?=\s|$))" };
-    inline static std::regex headers { R"(<(.*?)>(.*?)(?=<|$))" };
-    inline static std::regex members { R"(([a-zA-Z0-9_]+)=([a-zA-Z0-9-_#.\/\s\\\(\),\*]+)(?![a-zA-Z0-9_]*=))" };
-    inline static std::regex opcodeParameters{ R"(([a-zA-Z0-9\_]+?)([0-9]+)$)" };
+    inline static std::regex includes { R"V(#include\s*"(.*?)".*$)V", std::regex::optimize };
+    inline static std::regex defines { R"(#define\s*(\$[a-zA-Z0-9]+)\s+([a-zA-Z0-9]+)(?=\s|$))", std::regex::optimize };
+    inline static std::regex headers { R"(<(.*?)>(.*?)(?=<|$))", std::regex::optimize };
+    inline static std::regex members { R"(([a-zA-Z0-9_]+)=([a-zA-Z0-9-_#.\/\s\\\(\),\*]+)(?![a-zA-Z0-9_]*=))", std::regex::optimize };
+    inline static std::regex opcodeParameters{ R"(([a-zA-Z0-9\_]+?)([0-9]+)$)", std::regex::optimize };
 }
 
 inline constexpr unsigned int Fnv1aBasis = 0x811C9DC5;
@@ -64,6 +64,14 @@ inline constexpr unsigned int hash(const char *s, unsigned int h = Fnv1aBasis)
 }
 
 inline unsigned int hash(const std::string& s, unsigned int h = Fnv1aBasis) { return hash(s.c_str(), h); }
+
+inline unsigned int hash(std::string_view s, unsigned int h = Fnv1aBasis)
+{
+    if (s.length() > 0)
+        return hash(std::string_view(&s[1], s.length() - 1), static_cast<unsigned int>((h ^ s.front()) * static_cast<unsigned long long>(Fnv1aPrime)));
+
+    return h;
+}
 
 template<class T>
 inline constexpr double centsFactor(T cents, T centsPerOctave = 1200) { return std::pow(2, static_cast<double>(cents) / centsPerOctave); }

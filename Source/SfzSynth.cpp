@@ -225,63 +225,65 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 		}
 
 		// Store or handlemembers
-		std::for_each(paramIterator, regexEnd, [&](const auto& it){
-			const auto opcode = it[1];
-			const auto value = it[2];
+		std::for_each(paramIterator, regexEnd, [&](const auto &it) {
+			const auto opcode = std::string_view(&it[1], it->length(1));
+			const auto value = std::string_view(&it[2], it->length(2));
 			// Store the members depending on the header
 			switch (hash(header))
 			{
-				case hash("global"):
-					if (opcode == "sw_default")
-						setValueFromOpcode({ opcode, value }, defaultSwitch, SfzDefault::keyRange);
-					else
-						globalMembers.emplace_back( opcode, value );
-					break;
-				case hash("master"):
-					masterMembers.emplace_back( opcode, value );
-					break;
-				case hash("group"):
-					if (opcode == "group")
+			case hash("global"):
+				if (opcode == "sw_default")
+					setValueFromOpcode({opcode, value}, defaultSwitch, SfzDefault::keyRange);
+				else
+					globalMembers.emplace_back(opcode, value);
+				break;
+			case hash("master"):
+				masterMembers.emplace_back(opcode, value);
+				break;
+			case hash("group"):
+				if (opcode == "group")
+				{
+					try
 					{
-						try
-						{
-							const auto groupNumber = std::stoll(value);
-							if (maxGroup < groupNumber)
-								maxGroup = static_cast<uint32_t>(groupNumber);
-						}
-						catch (const std::exception& e [[maybe_unused]]) {}
+						const auto groupNumber = std::stoll(value);
+						if (maxGroup < groupNumber)
+							maxGroup = static_cast<uint32_t>(groupNumber);
 					}
-					groupMembers.emplace_back( opcode, value );
-					break;
-				case hash("region"):
-					regionMembers.emplace_back( opcode, value );
-					break;
-				case hash("control"):
+					catch (const std::exception &e[[maybe_unused]])
 					{
-						SfzOpcode lastOpcode { opcode, value };
-						switch (hash(lastOpcode.opcode))
-						{
-						case hash("set_cc"):
-							if (lastOpcode.parameter && withinRange(SfzDefault::ccRange, *lastOpcode.parameter))
-								setValueFromOpcode(lastOpcode, ccState[*lastOpcode.parameter], SfzDefault::ccRange);
-							break;
-						case hash("label_cc"):
-							if (lastOpcode.parameter && withinRange(SfzDefault::ccRange, *lastOpcode.parameter))
-								ccNames.emplace_back(*lastOpcode.parameter, lastOpcode.value);
-							break;
-						case hash("default_path"):
-							filePool.setRootDirectory(File(lastOpcode.value));
-							break;
-						default:
-							DBG("Unknown/unsupported opcode in <control> header: " << lastOpcode.opcode);
-						}
 					}
+				}
+				groupMembers.emplace_back(opcode, value);
+				break;
+			case hash("region"):
+				regionMembers.emplace_back(opcode, value);
+				break;
+			case hash("control"):
+			{
+				SfzOpcode lastOpcode{opcode, value};
+				switch (hash(lastOpcode.opcode))
+				{
+				case hash("set_cc"):
+					if (lastOpcode.parameter && withinRange(SfzDefault::ccRange, *lastOpcode.parameter))
+						setValueFromOpcode(lastOpcode, ccState[*lastOpcode.parameter], SfzDefault::ccRange);
 					break;
-				case hash("curve"):
-					curveMembers.emplace_back( opcode, value );
-					break;          
-				case hash("effect"):
-					effectMembers.emplace_back( opcode, value );          
+				case hash("label_cc"):
+					if (lastOpcode.parameter && withinRange(SfzDefault::ccRange, *lastOpcode.parameter))
+						ccNames.emplace_back(*lastOpcode.parameter, lastOpcode.value);
+					break;
+				case hash("default_path"):
+					filePool.setRootDirectory(File(lastOpcode.value));
+					break;
+				default:
+					DBG("Unknown/unsupported opcode in <control> header: " << lastOpcode.opcode);
+				}
+			}
+			break;
+			case hash("curve"):
+				curveMembers.emplace_back(opcode, value);
+				break;
+			case hash("effect"):
+				effectMembers.emplace_back(opcode, value);          
 			}
 		});
 	}
@@ -324,8 +326,9 @@ StringArray SfzSynth::getUnknownOpcodes() const
 	{
 		for (auto& opcode: region.unknownOpcodes)
 		{
-			if (!returnedArray.contains(opcode.opcode))
-				returnedArray.add(opcode.opcode);
+			String s { &opcode.opcode[0], opcode.opcode.length() };
+			if (!returnedArray.contains(s))
+				returnedArray.add(s);
 		}
 	}
 	return returnedArray;
