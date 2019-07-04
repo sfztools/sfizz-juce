@@ -39,3 +39,11 @@ static inline std::string trim_copy(std::string s) {
     trim(s);
     return s;
 }
+
+// trim from both ends (copying)
+static inline std::string_view trim_view(std::string_view s)
+{
+    const auto left_trim = std::find_if(s.begin(), s.end(), [](auto& ch) { return !std::isspace(ch); });
+    const auto right_trim = std::find_if(s.rbegin(), s.rend(), [](auto &ch) { return !std::isspace(ch); });
+    return {&*left_trim, std::distance(&*left_trim, &*right_trim)};
+}

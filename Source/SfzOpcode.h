@@ -31,30 +31,26 @@
 struct SfzOpcode
 {
     SfzOpcode() = delete;
-    SfzOpcode(const std::string& inputOpcode, const std::string& inputValue)
-    : value(trim_copy(inputValue))
+    SfzOpcode(const std::string_view &inputOpcode, const std::string_view &inputValue)
+    : value(trim_view(inputValue))
     {
-        std::smatch integerParameterMatch;
-        if (std::regex_search(inputOpcode, integerParameterMatch, SfzRegexes::opcodeParameters))
+        if (std::isdigit(inputOpcode.back()))
         {
-            opcode = integerParameterMatch[1];
+            const auto last_char = std::find_if(inputOpcode.rbegin(), inputOpcode.rend(), [](const auto& ch) { return !std::isdigit(ch) });
             try
             {
-                parameter = std::stoi(integerParameterMatch[2]);
+                parameter = std::stoi(&*last_char);
             }
             catch (const std::exception& e [[maybe_unused]])
             {
                 parameter = {};
             }
-        }
-        else
-        {
-            opcode = inputOpcode;
+            opcode = std::string_view(&inputOpcode[0], std::distance(&inputOpcode[0], &*last_char));
         }
     }
 
-    std::string opcode{};
-    std::string value{};	
+    std::string_view opcode{};
+    std::string_view value{};	
     // This is to handle the integer parameter of some opcodes
     std::optional<int> parameter;
 };

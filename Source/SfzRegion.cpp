@@ -35,7 +35,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     {
     // Sound source: sample playback
     case hash("sample"): 
-        sample = String(opcode.value).trim().replaceCharacter('\\', '/');
+        sample = String(&opcode.value[0], opcode.value.length()).trim().replaceCharacter('\\', '/');
     break;
     case hash("delay"): setValueFromOpcode(opcode, delay, SfzDefault::delayRange); break;
     case hash("delay_random"): setValueFromOpcode(opcode, delayRandom, SfzDefault::delayRange); break;
