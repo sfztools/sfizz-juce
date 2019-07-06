@@ -295,19 +295,29 @@ void SfzVoice::processMidi(MidiMessage& msg, int timestamp)
         }
 
         if (region->amplitudeCC && region->amplitudeCC->first == ccIdx)
-            amplitudeEnvelope.addEvent(timestamp, ccValue);
+        {
+            amplitudeEnvelope.addEvent(timestamp - lastAmplitudeEventTimestamp, ccValue);
+            lastAmplitudeEventTimestamp = timestamp;
+        }
 
         if (region->panCC && region->panCC->first == ccIdx)
-            panEnvelope.addEvent(timestamp, ccValue);
+        {
+            panEnvelope.addEvent(timestamp - lastPanEventTimestamp, ccValue);
+            lastPanEventTimestamp = timestamp;
+        }
 
         if (region->positionCC && region->positionCC->first == ccIdx)
-            positionEnvelope.addEvent(timestamp, ccValue);
+        {
+            positionEnvelope.addEvent(timestamp - lastPositionEventTimestamp, ccValue);
+            lastPositionEventTimestamp = timestamp;
+        }
 
         if (region->widthCC && region->widthCC->first == ccIdx)
-            widthEnvelope.addEvent(timestamp, ccValue);
-        
-        // if (region->volumeCCTriggers.contains(ccIdx))
-        //     addEventInFifo(amplitudeCC, amplitudeCCFifo, timestamp, region->volumeCCTriggers[ccIdx] * normalizeCC(ccValue));
+        {
+            widthEnvelope.addEvent(timestamp - lastWidthEventTimestamp, ccValue);
+            lastWidthEventTimestamp = timestamp;
+        }
+
     }
 
     if (noteIsOff && ccState[64] < 64)
@@ -417,8 +427,13 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
         localTime++;
     }
 
-    // applyAmplitudeEnvelope(outputBuffer, startSample, numSamples);
-    // incrementTime(numSamples);
+    // Reset the event timestamps for the next block
+    // TODO: not really satisfying 
+    lastPanEventTimestamp = 0;
+    lastAmplitudeEventTimestamp = 0;
+    lastPositionEventTimestamp = 0;
+    lastWidthEventTimestamp = 0;
+
     if (!fileLoadingPool.contains(this))
         fileLoadingPool.addJob(this, false);
 }

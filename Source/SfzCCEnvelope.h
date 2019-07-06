@@ -25,9 +25,9 @@
 
 struct EnvelopeEvent
 {
-    EnvelopeEvent(uint32_t timestamp, uint8_t ccValue) 
-    : timestamp(timestamp), ccValue(ccValue) {}
-    uint32_t timestamp;
+    EnvelopeEvent(int delay, uint8_t ccValue) 
+    : delay(delay), ccValue(ccValue) {}
+    int delay;
     uint8_t ccValue;
 };
 
@@ -35,7 +35,7 @@ class SfzCCEnvelope
 {
 public:
     SfzCCEnvelope(int maximumSize = config::defaultSamplesPerBlock)
-    : fifo(maximumSize)
+    : size(maximumSize)
     {
         points.reserve(maximumSize);
         smoothedValue.setCurrentAndTargetValue(0.0f);
@@ -43,9 +43,8 @@ public:
 
     void setSize(int maximumSize)
     {
-        fifo.reset();
+        size = maximumSize;
         points.reserve(maximumSize);
-        fifo.setTotalSize(maximumSize);
     }
 
     void setTransform(std::function<float(float)> transform) noexcept
@@ -55,75 +54,50 @@ public:
 
     void reset(uint8_t ccValue = SfzDefault::cc) noexcept
     {
-        localTime = 0;
         smoothedValue.setCurrentAndTargetValue(normalizeCC(ccValue));
     }
 
-    void addEvent(int timestamp, uint8_t ccValue) noexcept
+    void addEvent(int delay, uint8_t ccValue) noexcept
     {
-        if (fifo.getFreeSpace() == 0)
+        if (getFreeSpace() == 0)
             return;
 
-        AbstractFifo::ScopedWrite writer { fifo, 1 };
-        if (writer.blockSize1 == 1)
-            points.emplace(begin(points) + writer.startIndex1, timestamp, ccValue);
-        else
-            points.emplace(begin(points) + writer.startIndex2, timestamp, ccValue);
+        points[writeIndex] = EnvelopeEvent(delay, ccValue);
+        writeIndex = (writeIndex + 1) % size;
     };
 
     float getNextValue() noexcept
     {
-        if (!smoothedValue.isSmoothing() && fifo.getNumReady() > 0)
+        if (!smoothedValue.isSmoothing() && getNumReady() > 0)
         {
-            auto [timestamp, ccValue] = readEventFromFifo();
-            auto rampDuration = timestamp > localTime ? timestamp - localTime : 0;
-            smoothedValue.reset(rampDuration);
-            smoothedValue.setTargetValue(normalizeCC(ccValue));
+            smoothedValue.reset(points[readIndex].delay);
+            smoothedValue.setTargetValue(normalizeCC(points[readIndex].ccValue));
+            readIndex = (readIndex + 1) % size;
         }
-
-        localTime++;
         return transformValue(smoothedValue.getNextValue());
     }
 
 private:
-    EnvelopeEvent readEventFromFifo() noexcept
+    int getNumReady() const noexcept
     {
-        AbstractFifo::ScopedRead reader { fifo, 1 };
-        if (reader.blockSize1 == 1)
-            return points[reader.startIndex1];
+        if (writeIndex >= readIndex)
+            return writeIndex - readIndex;
         else
-            return points[reader.startIndex2];
-    };
+            return size - readIndex + writeIndex;
+    }
+
+    int getFreeSpace() const noexcept
+    {
+        if (writeIndex >= readIndex)
+            return size - writeIndex + readIndex;
+        else
+            return readIndex - writeIndex;
+    }
 
     std::function<float(float)> transformValue { [] (float ccValue) -> float { return ccValue; } };
     std::vector<EnvelopeEvent> points;
-    AbstractFifo fifo;
     SmoothedValue<float, ValueSmoothingTypes::Linear> smoothedValue;
-    uint32_t localTime { 0 };
+    int readIndex { 0 };
+    int writeIndex { 0 };
+    int size { 0 };
 };
-
-
-// Constant power pan rule
-inline void applyPanToSample(float pan, float& left, float& right)
-{
-    const float normalizedPan = pan / SfzDefault::panRange.getEnd();
-    const float circlePan = MathConstants<float>::pi * (normalizedPan + 1) / 4;
-    if (pan < 0) 
-        std::swap(left, right);
-    left *= dsp::FastMathApproximations::cos(circlePan);
-    right *= dsp::FastMathApproximations::sin(circlePan);
-}
-
-inline void applyWidthAndPositionToSample(float width, float position, float& left, float& right)
-{
-    const float normalizedWidth = width / SfzDefault::widthRange.getEnd();
-    const float circleWidth = MathConstants<float>::pi * (normalizedWidth + 1) / 4;
-    const float normalizedPosition = position / SfzDefault::positionRange.getEnd();
-    const float circlePosition = MathConstants<float>::pi * (normalizedPosition + 1) / 4;
-    float mid = (left + right) / MathConstants<float>::sqrt2;
-    float side = (left - right) / MathConstants<float>::sqrt2;
-    mid *= dsp::FastMathApproximations::cos(circleWidth);
-    side *= dsp::FastMathApproximations::sin(circleWidth);
-    left = (mid + side) * dsp::FastMathApproximations::cos(circlePosition) / MathConstants<float>::sqrt2;
-    right = (mid - side) * dsp::FastMathApproximations::sin(circlePosition) / MathConstants<float>::sqrt2;
-}

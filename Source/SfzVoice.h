@@ -91,9 +91,13 @@ private:
     SfzCCEnvelope panEnvelope;
     SfzCCEnvelope positionEnvelope;
     SfzCCEnvelope widthEnvelope;
+    int lastPanEventTimestamp { 0 };
+    int lastAmplitudeEventTimestamp { 0 };
+    int lastPositionEventTimestamp { 0 };
+    int lastWidthEventTimestamp { 0 };
 
     // Internal position and counters
-    int initialDelay { 0 };
+    int initialDelay{0};
     int64 sourcePosition { 0 };
     uint32_t loopCount { 1 };
     

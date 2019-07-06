@@ -21,6 +21,7 @@
 
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "SfzDefaults.h"
 #include <regex>
 #include <array>
 
@@ -79,4 +80,29 @@ template<class T>
 inline constexpr float normalizePercents(T percentValue)
 {
     return std::min(std::max(static_cast<float>(percentValue), 0.0f), 100.0f) / 100.0f;
+}
+
+// Constant power pan rule
+inline void applyPanToSample(float pan, float& left, float& right)
+{
+    const float normalizedPan = pan / SfzDefault::panRange.getEnd();
+    const float circlePan = MathConstants<float>::pi * (normalizedPan + 1) / 4;
+    if (pan < 0) 
+        std::swap(left, right);
+    left *= dsp::FastMathApproximations::cos(circlePan);
+    right *= dsp::FastMathApproximations::sin(circlePan);
+}
+
+inline void applyWidthAndPositionToSample(float width, float position, float& left, float& right)
+{
+    const float normalizedWidth = width / SfzDefault::widthRange.getEnd();
+    const float circleWidth = MathConstants<float>::pi * (normalizedWidth + 1) / 4;
+    const float normalizedPosition = position / SfzDefault::positionRange.getEnd();
+    const float circlePosition = MathConstants<float>::pi * (normalizedPosition + 1) / 4;
+    float mid = (left + right) / MathConstants<float>::sqrt2;
+    float side = (left - right) / MathConstants<float>::sqrt2;
+    mid *= dsp::FastMathApproximations::cos(circleWidth);
+    side *= dsp::FastMathApproximations::sin(circleWidth);
+    left = (mid + side) * dsp::FastMathApproximations::cos(circlePosition) / MathConstants<float>::sqrt2;
+    right = (mid - side) * dsp::FastMathApproximations::sin(circlePosition) / MathConstants<float>::sqrt2;
 }
