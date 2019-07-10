@@ -70,7 +70,6 @@ private:
     std::list<SfzVoice> voices;
     std::vector<SfzRegion> regions;
     std::vector<File> includedFiles;
-    std::vector<int> newGroups;
     CCValueArray ccState;
     std::vector<CCNamePair> ccNames;
 

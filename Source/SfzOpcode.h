@@ -27,25 +27,31 @@
 #include <regex>
 #include <string>
 #include <optional>
+#include <charconv>
 
 struct SfzOpcode
 {
     SfzOpcode() = delete;
-    SfzOpcode(const std::string_view &inputOpcode, const std::string_view &inputValue)
+    SfzOpcode(std::string_view inputOpcode, std::string_view inputValue)
     : value(trim_view(inputValue))
     {
         if (std::isdigit(inputOpcode.back()))
         {
-            const auto last_char = std::find_if(inputOpcode.rbegin(), inputOpcode.rend(), [](const auto& ch) { return !std::isdigit(ch) });
-            try
-            {
-                parameter = std::stoi(&*last_char);
-            }
-            catch (const std::exception& e [[maybe_unused]])
-            {
-                parameter = {};
-            }
-            opcode = std::string_view(&inputOpcode[0], std::distance(&inputOpcode[0], &*last_char));
+            const auto lastChar = std::find_if(inputOpcode.rbegin(), inputOpcode.rend(), [](const auto& ch) { return !std::isdigit(ch); });
+            if (lastChar == inputOpcode.rend())
+                return;
+            
+            const auto lastCharPtr = &*lastChar;
+            int returnValue { 0 };
+            auto [ptr, errorCode] = std::from_chars(lastCharPtr + 1, inputOpcode.data() + inputOpcode.size(), returnValue);
+
+            if (errorCode == std::errc())
+                parameter = returnValue;
+            opcode = std::string_view(inputOpcode.data(), std::distance(inputOpcode.data(), lastCharPtr + 1)  );
+        }
+        else
+        {
+            opcode = inputOpcode;
         }
     }
 
@@ -55,9 +61,9 @@ struct SfzOpcode
     std::optional<int> parameter;
 };
 
-inline std::optional<uint8_t> readNoteValue(const std::string& value)
+inline std::optional<uint8_t> readNoteValue(const std::string_view&value)
 {
-    switch(hash(value.c_str()))
+    switch(hash(value))
     {
         case hash("c-1"):   case hash("C-1"):   return 0;
         case hash("c#-1"):  case hash("C#-1"):  return 1;
@@ -202,17 +208,31 @@ inline std::optional<uint8_t> readNoteValue(const std::string& value)
 }
 
 template<class ValueType>
-inline std::optional<ValueType> readOpcode(const std::string& value, const Range<ValueType>& validRange)
+inline std::optional<ValueType> readOpcode(const std::string_view& value, const Range<ValueType>& validRange)
 {
     if constexpr(std::is_integral<ValueType>::value)
     {
+        // int64_t returnedValue;
+        // auto [ptr, errorCode] = std::from_chars(value.data(), value.data() + value.size(), returnedValue);
+        // if (errorCode != std::errc())
+        //     return {};
+
+        // if (returnedValue > std::numeric_limits<ValueType>::max())
+        //     returnedValue = std::numeric_limits<ValueType>::max();
+        // if (returnedValue < std::numeric_limits<ValueType>::min())
+        //     returnedValue = std::numeric_limits<ValueType>::min();
+
+        // return validRange.clipValue(static_cast<ValueType>(returnedValue));
         try
         {
-            auto returnedValue = std::stoll(value);
+            std::string valueStr { value };
+            auto returnedValue = std::stoll(valueStr);
+            
             if (returnedValue > std::numeric_limits<ValueType>::max())
                 returnedValue = std::numeric_limits<ValueType>::max();
             if (returnedValue < std::numeric_limits<ValueType>::min())
                 returnedValue = std::numeric_limits<ValueType>::min();
+
             return validRange.clipValue(static_cast<ValueType>(returnedValue));
         }
         catch (const std::exception& e [[maybe_unused]])
@@ -222,9 +242,17 @@ inline std::optional<ValueType> readOpcode(const std::string& value, const Range
     }
     else
     {
+        // GCC does not support this as of 8.3
+        // float returnedValue;
+        // auto [ptr, errorCode] = std::from_chars(value.data(), value.data() + value.size(), returnedValue);
+        // if (errorCode != std::errc())
+        //     return {};
+
+        // return validRange.clipValue(returnedValue);
         try
         {
-            return validRange.clipValue(std::stof(value));
+            std::string valueStr { value };
+            return validRange.clipValue(std::stof(valueStr));
         }
         catch (const std::exception& e [[maybe_unused]])
         {

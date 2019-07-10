@@ -22,6 +22,7 @@
 #include "SfzSynth.h"
 #include <string>
 #include <regex>
+#include <string_view>
 
 SfzSynth::SfzSynth()
 {
@@ -138,12 +139,11 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	
 	rootDirectory = file.getParentDirectory();
 	filePool.setRootDirectory(rootDirectory);
-	auto fullString = readSfzFile(file);
-	fullString = expandDefines(fullString);
+	auto fullString = expandDefines(readSfzFile(file));
+	std::string_view fullStringView { fullString };
 
-	auto headerIterator = std::sregex_iterator(fullString.begin(), fullString.end(), SfzRegexes::headers);
-	auto regexEnd = std::sregex_iterator();
-	uint32_t maxGroup { 1 };
+	std::regex_iterator<std::string_view::const_iterator> headerIterator(fullStringView.cbegin(), fullStringView.cend(), SfzRegexes::headers);
+	auto regexEnd = std::regex_iterator<std::string_view::const_iterator>();
 	std::optional<uint8_t> defaultSwitch {};
 
 	std::vector<SfzOpcode> globalMembers;
@@ -173,9 +173,12 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 
 	for (; headerIterator != regexEnd; ++headerIterator)
   	{
-		const auto header = headerIterator->str(1);
-		const auto members = headerIterator->str(2);        
-		auto paramIterator = std::sregex_iterator (members.begin(), members.end(), SfzRegexes::members);
+		std::match_results<std::string_view::const_iterator> headerMatch = *headerIterator;
+
+		// Can't use uniform initialization here because it generates narrowing conversions
+		const std::string_view header (headerMatch[1].first, headerMatch[1].length());
+		const std::string_view members (headerMatch[2].first, headerMatch[2].length());        
+		auto paramIterator = std::regex_iterator<std::string_view::const_iterator> (members.begin(), members.end(), SfzRegexes::members);
 
 		// If we had a building region and we encounter a new header we have to build it
 		if (regionStarted)
@@ -225,9 +228,11 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 		}
 
 		// Store or handlemembers
-		std::for_each(paramIterator, regexEnd, [&](const auto &it) {
-			const auto opcode = std::string_view(&it[1], it->length(1));
-			const auto value = std::string_view(&it[2], it->length(2));
+		for (; paramIterator != regexEnd; ++paramIterator)
+		{
+			std::match_results<std::string_view::const_iterator> paramMatch = *paramIterator;
+			const std::string_view opcode (paramMatch[1].first, paramMatch[1].length());
+			const std::string_view value (paramMatch[2].first, paramMatch[2].length());
 			// Store the members depending on the header
 			switch (hash(header))
 			{
@@ -241,18 +246,6 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 				masterMembers.emplace_back(opcode, value);
 				break;
 			case hash("group"):
-				if (opcode == "group")
-				{
-					try
-					{
-						const auto groupNumber = std::stoll(value);
-						if (maxGroup < groupNumber)
-							maxGroup = static_cast<uint32_t>(groupNumber);
-					}
-					catch (const std::exception &e[[maybe_unused]])
-					{
-					}
-				}
 				groupMembers.emplace_back(opcode, value);
 				break;
 			case hash("region"):
@@ -269,10 +262,17 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 					break;
 				case hash("label_cc"):
 					if (lastOpcode.parameter && withinRange(SfzDefault::ccRange, *lastOpcode.parameter))
-						ccNames.emplace_back(*lastOpcode.parameter, lastOpcode.value);
+					{
+						String ccName{lastOpcode.value.data(), lastOpcode.value.size()};
+						ccNames.emplace_back(*lastOpcode.parameter, std::move(ccName));
+					}
 					break;
 				case hash("default_path"):
-					filePool.setRootDirectory(File(lastOpcode.value));
+				{
+					String newPath{lastOpcode.value.data(), lastOpcode.value.size()};
+					File newRootDirectory{newPath};
+					filePool.setRootDirectory(newRootDirectory);
+				}
 					break;
 				default:
 					DBG("Unknown/unsupported opcode in <control> header: " << lastOpcode.opcode);
@@ -285,7 +285,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 			case hash("effect"):
 				effectMembers.emplace_back(opcode, value);          
 			}
-		});
+		}
 	}
 	
 	// Build the last region
@@ -294,9 +294,6 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 		buildRegion();
 		regionStarted = false;
 	}
-
-	// Find the groups and the offgroups
-	newGroups.reserve(maxGroup);
 
 	// Sort the CC labels
 	std::sort(begin(ccNames), end(ccNames), [](auto& lhs, auto& rhs) { return lhs.first < rhs.first; });
