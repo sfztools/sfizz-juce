@@ -23,7 +23,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SfzGlobals.h"
 #include "JuceHelpers.h"
-#include "StdStringTrimmers.h"
 #include <regex>
 #include <string>
 #include <optional>

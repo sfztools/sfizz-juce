@@ -24,6 +24,7 @@
 #include "SfzDefaults.h"
 #include <regex>
 #include <array>
+#include <string_view>
 
 using CCValueArray = std::array<uint8_t, 128>;
 using CCValuePair = std::pair<uint8_t, float> ;
@@ -113,4 +114,11 @@ inline void applyWidthAndPositionToSample(float width, float position, float& le
     side *= dsp::FastMathApproximations::sin(circleWidth);
     left = (mid + side) * dsp::FastMathApproximations::cos(circlePosition) / MathConstants<float>::sqrt2;
     right = (mid - side) * dsp::FastMathApproximations::sin(circlePosition) / MathConstants<float>::sqrt2;
+}
+
+inline std::string_view trim_view(std::string_view s)
+{
+    const auto left_trim = std::find_if(s.begin(), s.end(), [](auto& ch) { return !std::isspace(ch); });
+    const auto right_trim = std::find_if(s.rbegin(), s.rend(), [](auto &ch) { return !std::isspace(ch); });
+    return std::string_view(&*left_trim, std::distance(&*left_trim, &*right_trim) + 1);
 }
