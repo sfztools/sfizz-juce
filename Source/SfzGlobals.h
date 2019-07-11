@@ -35,7 +35,7 @@ namespace config
     inline constexpr int bufferSize { 8192 };
     inline constexpr double defaultSampleRate { 48000 };
     inline constexpr int defaultSamplesPerBlock { 1024 };
-    inline constexpr int preloadSize { bufferSize * 4 };
+    inline constexpr int preloadSize { bufferSize };
     inline constexpr int numChannels { 2 };
     inline constexpr int numVoices { 64 };
     inline constexpr int maxGroups { 32 };
@@ -114,7 +114,7 @@ inline void applyWidthAndPositionToSample(float width, float position, float& le
     right = (mid - side) * dsp::FastMathApproximations::sin(circlePosition) / MathConstants<float>::sqrt2;
 }
 
-inline std::string_view trim_view(std::string_view s)
+inline std::string_view trimView(std::string_view s)
 {
     const auto left_trim = std::find_if(s.begin(), s.end(), [](auto& ch) { return !std::isspace(ch); });
     const auto right_trim = std::find_if(s.rbegin(), s.rend(), [](auto &ch) { return !std::isspace(ch); });

@@ -27,12 +27,11 @@
 #include <string>
 #include <optional>
 
-
 struct SfzOpcode
 {
     SfzOpcode() = delete;
     SfzOpcode(std::string_view inputOpcode, std::string_view inputValue)
-    : value(trim_view(inputValue))
+    : value(trimView(inputValue))
     {
         if (std::isdigit(inputOpcode.back()))
         {
@@ -41,18 +40,23 @@ struct SfzOpcode
             if (lastChar == inputOpcode.rend())
                 return;
             
-            const auto firstDigitPtr = &*lastChar + 1;
             try
             {
-                std::string valueStr (firstDigitPtr, std::distance(firstDigitPtr, inputOpcode.end()));
-                parameter = std::stoi(valueStr);
-                opcode = std::string_view(inputOpcode.data(), std::distance(inputOpcode.data(), firstDigitPtr) );
+                const auto firstDigitPtr = &*lastChar + 1;
+                const auto numberLength = std::distance(firstDigitPtr, inputOpcode.end());
+                std::string parameterNum (firstDigitPtr, numberLength);
+                parameter = std::stoi(parameterNum);
+                opcode = std::string_view(inputOpcode.data(), numberLength);
             }
-             catch (const std::exception& e [[maybe_unused]])
+            catch (const std::exception& e [[maybe_unused]])
             {
                 opcode = inputOpcode;
                 parameter = {};
             }
+            // Sketchy support for charconv in current versions of XCode, GCC, etc...
+            // TODO: It would be better than std::stoXX though, since we would not require a temporary string
+            // to be created. One can hope that such a string is small enough..
+            //
             // int returnValue { 0 };
             // auto [ptr, errorCode] = std::from_chars(lastCharPtr + 1, inputOpcode.data() + inputOpcode.size(), returnValue);
 
