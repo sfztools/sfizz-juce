@@ -65,12 +65,10 @@ inline constexpr unsigned int hash(const char *s, unsigned int h = Fnv1aBasis)
     return !*s ? h : hash(s + 1, static_cast<unsigned int>((h ^ *s) * static_cast<unsigned long long>(Fnv1aPrime)));
 }
 
-inline unsigned int hash(const std::string& s, unsigned int h = Fnv1aBasis) { return hash(s.c_str(), h); }
-
 inline unsigned int hash(std::string_view s, unsigned int h = Fnv1aBasis)
 {
     if (s.length() > 0)
-        return hash(std::string_view(&s[1], s.length() - 1), static_cast<unsigned int>((h ^ s.front()) * static_cast<unsigned long long>(Fnv1aPrime)));
+        return hash(std::string_view(s.data() + 1, s.length() - 1), static_cast<unsigned int>((h ^ s.front()) * static_cast<unsigned long long>(Fnv1aPrime)));
 
     return h;
 }
