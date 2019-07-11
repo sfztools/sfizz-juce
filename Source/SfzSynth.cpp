@@ -139,13 +139,16 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	
 	rootDirectory = file.getParentDirectory();
 	filePool.setRootDirectory(rootDirectory);
-	auto fullString = expandDefines(readSfzFile(file));
-	std::string_view fullStringView { fullString };
+	const auto fullString = expandDefines(readSfzFile(file));
+	const std::string_view fullStringView { fullString };
 
-	std::regex_iterator<std::string_view::const_iterator> headerIterator(fullStringView.cbegin(), fullStringView.cend(), SfzRegexes::headers);
-	auto regexEnd = std::regex_iterator<std::string_view::const_iterator>();
+	using svregex_iterator = std::regex_iterator<std::string_view::const_iterator>;
+	using svmatch_results = std::match_results<std::string_view::const_iterator>;
+
+	svregex_iterator headerIterator(fullStringView.cbegin(), fullStringView.cend(), SfzRegexes::headers);
+	const auto regexEnd = svregex_iterator();
+
 	std::optional<uint8_t> defaultSwitch {};
-
 	std::vector<SfzOpcode> globalMembers;
 	std::vector<SfzOpcode> masterMembers;
 	std::vector<SfzOpcode> groupMembers;
@@ -173,12 +176,12 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 
 	for (; headerIterator != regexEnd; ++headerIterator)
   	{
-		std::match_results<std::string_view::const_iterator> headerMatch = *headerIterator;
+		svmatch_results headerMatch = *headerIterator;
 
 		// Can't use uniform initialization here because it generates narrowing conversions
 		const std::string_view header (headerMatch[1].first, headerMatch[1].length());
 		const std::string_view members (headerMatch[2].first, headerMatch[2].length());        
-		auto paramIterator = std::regex_iterator<std::string_view::const_iterator> (members.begin(), members.end(), SfzRegexes::members);
+		auto paramIterator = svregex_iterator (members.cbegin(), members.cend(), SfzRegexes::members);
 
 		// If we had a building region and we encounter a new header we have to build it
 		if (regionStarted)
@@ -230,9 +233,10 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 		// Store or handlemembers
 		for (; paramIterator != regexEnd; ++paramIterator)
 		{
-			std::match_results<std::string_view::const_iterator> paramMatch = *paramIterator;
+			svmatch_results paramMatch = *paramIterator;
 			const std::string_view opcode (paramMatch[1].first, paramMatch[1].length());
 			const std::string_view value (paramMatch[2].first, paramMatch[2].length());
+
 			// Store the members depending on the header
 			switch (hash(header))
 			{
