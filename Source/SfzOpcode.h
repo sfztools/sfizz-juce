@@ -26,7 +26,7 @@
 #include <regex>
 #include <string>
 #include <optional>
-#include <charconv>
+
 
 struct SfzOpcode
 {
@@ -36,17 +36,29 @@ struct SfzOpcode
     {
         if (std::isdigit(inputOpcode.back()))
         {
+
             const auto lastChar = std::find_if(inputOpcode.rbegin(), inputOpcode.rend(), [](const auto& ch) { return !std::isdigit(ch); });
             if (lastChar == inputOpcode.rend())
                 return;
             
-            const auto lastCharPtr = &*lastChar;
-            int returnValue { 0 };
-            auto [ptr, errorCode] = std::from_chars(lastCharPtr + 1, inputOpcode.data() + inputOpcode.size(), returnValue);
+            const auto firstDigitPtr = &*lastChar + 1;
+            try
+            {
+                std::string valueStr (firstDigitPtr, std::distance(firstDigitPtr, inputOpcode.end()));
+                parameter = std::stoi(valueStr);
+                opcode = std::string_view(inputOpcode.data(), std::distance(inputOpcode.data(), firstDigitPtr) );
+            }
+             catch (const std::exception& e [[maybe_unused]])
+            {
+                opcode = inputOpcode;
+                parameter = {};
+            }
+            // int returnValue { 0 };
+            // auto [ptr, errorCode] = std::from_chars(lastCharPtr + 1, inputOpcode.data() + inputOpcode.size(), returnValue);
 
-            if (errorCode == std::errc())
-                parameter = returnValue;
-            opcode = std::string_view(inputOpcode.data(), std::distance(inputOpcode.data(), lastCharPtr + 1)  );
+            // if (errorCode == std::errc())
+            //     parameter = returnValue;
+            // opcode = std::string_view(inputOpcode.data(), std::distance(inputOpcode.data(), lastCharPtr + 1)  );
         }
         else
         {
@@ -207,10 +219,14 @@ inline std::optional<uint8_t> readNoteValue(const std::string_view&value)
 }
 
 template<class ValueType>
-inline std::optional<ValueType> readOpcode(const std::string_view& value, const Range<ValueType>& validRange)
+inline std::optional<ValueType> readOpcode(std::string_view value, const Range<ValueType>& validRange)
 {
     if constexpr(std::is_integral<ValueType>::value)
     {
+        // Sketchy support for charconv in current versions of XCode, GCC, etc...
+        // TODO: It would be better than std::stoXX though, since we would not require a temporary string
+        // to be created. One can hope that such a string is small enough..
+        //
         // int64_t returnedValue;
         // auto [ptr, errorCode] = std::from_chars(value.data(), value.data() + value.size(), returnedValue);
         // if (errorCode != std::errc())
