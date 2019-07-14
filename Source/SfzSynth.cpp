@@ -40,21 +40,6 @@ SfzSynth::~SfzSynth()
 
 }
 
-std::string removeComment(const std::string& line)
-{
-	return std::regex_replace(line, std::regex(R"(//.*$)"), "");
-}
-
-std::string removeEOL(const std::string& line)
-{
-	return std::regex_replace(line, std::regex(R"(\r)"), "");
-}
-
-bool testEmptyLine(const std::string& line)
-{
-	return std::regex_match(line, std::regex(R"(^\s*$)"));
-}
-
 void SfzSynth::initalizeVoices(int numVoices)
 {
 	for (int i = 0; i < config::numVoices; ++i)
@@ -63,7 +48,7 @@ void SfzSynth::initalizeVoices(int numVoices)
 		voice.prepareToPlay(sampleRate, samplesPerBlock);
 	}
 }
-void SfzSynth::readSfzFile(const std::filesystem::path &fileName, std::vector<std::string>& lines) noexcept
+void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<std::string>& lines) noexcept
 {
 	std::ifstream fileStream(fileName.c_str());
 	if (!fileStream)
@@ -73,12 +58,20 @@ void SfzSynth::readSfzFile(const std::filesystem::path &fileName, std::vector<st
 	svmatch_results defineMatch;
 
 	std::string tmpString;
+	auto state = fileStream.rdstate();
 	while (std::getline(fileStream, tmpString))
 	{
+		state = fileStream.rdstate();
 		std::string_view tmpView { tmpString };
+		
 		if (auto position = tmpView.find("//"); position != tmpView.npos)
 			tmpView.remove_suffix(tmpView.size() - position);
 		
+		trimView(tmpView);
+		
+		if (tmpView.empty())
+			continue;
+
 		// TODO: check that we only expect 1 include per line, otherwise we need to loop and update
 		if (std::regex_match(tmpView.begin(), tmpView.end(), includeMatch, SfzRegexes::includes))
 		{
@@ -91,6 +84,7 @@ void SfzSynth::readSfzFile(const std::filesystem::path &fileName, std::vector<st
 				includedFiles.push_back(newFile);
 				readSfzFile(newFile, lines);
 			}
+			state = fileStream.rdstate();
 			continue;
 		}
 
@@ -342,7 +336,7 @@ StringArray SfzSynth::getUnknownOpcodes() const
 	{
 		for (auto& opcode: region.unknownOpcodes)
 		{
-			String s { &opcode.opcode[0], opcode.opcode.length() };
+			String s { opcode };
 			if (!returnedArray.contains(s))
 				returnedArray.add(s);
 		}

@@ -71,7 +71,7 @@ private:
     int numGroups { 0 };
     int numMasters { 0 };
     ThreadPool fileLoadingPool { config::numLoadingThreads };
-    void readSfzFile(const std::filesystem::path &fileName, std::vector<std::string>& lines) noexcept;
+    void readSfzFile(const std::filesystem::path& fileName, std::vector<std::string>& lines) noexcept;
     SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
