@@ -198,7 +198,7 @@ struct SfzRegion
     double sampleRate { config::defaultSampleRate };
     int numChannels { 1 };
 
-    std::vector<SfzOpcode> unknownOpcodes;
+    std::vector<std::string> unknownOpcodes;
     std::shared_ptr<AudioBuffer<float>> preloadedData;
 private:
     bool prepared { false };

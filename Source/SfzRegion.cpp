@@ -263,7 +263,9 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
     case hash("ampeg_depth"):
     case hash("ampeg_vel2depth"):
         break;
-    default: unknownOpcodes.push_back(opcode);
+    default:
+        std::string opcodeStr { opcode.opcode.begin(), opcode.opcode.end() };
+        unknownOpcodes.push_back(opcodeStr);
     }
 
     // Unsupported opcodes
