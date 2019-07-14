@@ -71,10 +71,7 @@ private:
     int numGroups { 0 };
     int numMasters { 0 };
     ThreadPool fileLoadingPool { config::numLoadingThreads };
-    // std::string parseInclude(const std::string& line);
-    // std::string readSfzFile(const juce::File &file);
-    // std::string expandDefines(const std::string& str);
-    void readSfzLines(const std::filesystem::path &fileName, std::vector<std::string>& lines) noexcept;
+    void readSfzFile(const std::filesystem::path &fileName, std::vector<std::string>& lines) noexcept;
     SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
