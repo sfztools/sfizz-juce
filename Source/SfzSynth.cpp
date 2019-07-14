@@ -72,6 +72,9 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 		if (tmpView.empty())
 			continue;
 
+		// TODO: enable partial matches on the regex, one way or another
+		// TODO: add tests for crap/whitespace at the end of the define and include lines
+
 		// TODO: check that we only expect 1 include per line, otherwise we need to loop and update
 		if (std::regex_match(tmpView.begin(), tmpView.end(), includeMatch, SfzRegexes::includes))
 		{
@@ -119,6 +122,7 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 					break;
 				}
 			}
+			// TODO: the dollar sign is not copied in the output if it is not a variable name
 			lastPos = findPos + 1;
 			findPos = tmpView.find('$', lastPos);
 		}
