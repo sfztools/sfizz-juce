@@ -40,13 +40,14 @@ set(TEST_SOURCES
     Source/SfzRegion.cpp
     Source/SfzSynth.cpp
     Source/SfzVoice.cpp
-    Tests/RegionBuildTests.cpp
-    Tests/RegionActivationTests.cpp
+    Tests/TrimViewTests.cpp
     Tests/CCEnvelopeTest.cpp
-    Tests/RegionTriggers.cpp
-    Tests/FileTests.cpp
     Tests/OpcodeTests.cpp
     Tests/RegexTests.cpp
+    Tests/FileTests.cpp
+    Tests/RegionBuildTests.cpp
+    Tests/RegionActivationTests.cpp
+    Tests/RegionTriggers.cpp
     Tests/Main.cpp
 )
 
@@ -107,7 +108,7 @@ if(WIN32)
     target_compile_options(${PROJECT_NAME}_Standalone PRIVATE /permissive-)
 endif(WIN32)
 if(UNIX)
-    target_link_libraries(${PROJECT_NAME}_Standalone ${CMAKE_DL_LIBS} Threads::Threads)
+    target_link_libraries(${PROJECT_NAME}_Standalone ${CMAKE_DL_LIBS} Threads::Threads stdc++fs)
 endif(UNIX)
 set_target_properties(${PROJECT_NAME}_Standalone PROPERTIES OUTPUT_NAME "sfizz")
 target_link_libraries(${PROJECT_NAME}_Standalone JUCE)
@@ -119,7 +120,7 @@ target_compile_features(${PROJECT_NAME}_Standalone PRIVATE cxx_std_17)
 add_executable(${PROJECT_NAME}_Test ${TEST_SOURCES})
 # Per OS properties
 if(UNIX)
-target_link_libraries(${PROJECT_NAME}_Test ${CMAKE_DL_LIBS} Threads::Threads )
+target_link_libraries(${PROJECT_NAME}_Test ${CMAKE_DL_LIBS} Threads::Threads stdc++fs)
 endif(UNIX)
 if(WIN32)
 # Required only for Range v3
@@ -139,6 +140,9 @@ if(WIN32)
 # Required only for Range v3
 target_compile_options(${PROJECT_NAME}_VST PRIVATE /permissive-)
 endif(WIN32)
+if(UNIX)
+target_link_libraries(${PROJECT_NAME}_Test ${CMAKE_DL_LIBS} Threads::Threads stdc++fs)
+endif(UNIX)
 set_target_properties(${PROJECT_NAME}_VST PROPERTIES OUTPUT_NAME "sfizz")
 set_target_properties(${PROJECT_NAME}_VST PROPERTIES SUFFIX ".vst3")
 target_link_libraries(${PROJECT_NAME}_VST JUCE)

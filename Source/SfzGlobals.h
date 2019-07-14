@@ -114,9 +114,17 @@ inline void applyWidthAndPositionToSample(float width, float position, float& le
     right = (mid - side) * dsp::FastMathApproximations::sin(circlePosition) / MathConstants<float>::sqrt2;
 }
 
-inline std::string_view trimView(std::string_view s)
+inline void trimView(std::string_view& s)
 {
-    const auto left_trim = std::find_if(s.begin(), s.end(), [](auto& ch) { return !std::isspace(ch); });
-    const auto right_trim = std::find_if(s.rbegin(), s.rend(), [](auto &ch) { return !std::isspace(ch); });
-    return std::string_view(&*left_trim, std::distance(&*left_trim, &*right_trim) + 1);
+    const auto leftPosition = s.find_first_not_of(" \r\t\n\f\v");
+    if (leftPosition != s.npos)
+    {
+        s.remove_prefix(leftPosition);
+        const auto rightPosition = s.find_last_not_of(" \r\t\n\f\v");
+        s.remove_suffix(s.size() - rightPosition - 1);
+    }
+    else
+    {
+        s.remove_suffix(s.size());
+    }    
 }

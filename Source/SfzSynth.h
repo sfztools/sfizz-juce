@@ -28,6 +28,7 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <filesystem>
 #include "SfzFilePool.h"
 
 class SfzSynth
@@ -35,7 +36,7 @@ class SfzSynth
 public:
     SfzSynth();
     ~SfzSynth();
-    bool loadSfzFile(const File& file);
+    bool loadSfzFile(const std::filesystem::path &file);
     void initalizeVoices(int numVoices = config::numVoices);
     void clear();
 
@@ -53,25 +54,36 @@ public:
     { 
         return static_cast<int>(std::count_if(voices.cbegin(), voices.cend(), [](const auto& voice) { return voice.isPlaying(); })); 
     }
+    inline void printDefines()
+    {
+        for (const auto& definePair: defines)
+        {
+            String s;
+            s << definePair.first << " = " << definePair.second;
+            DBG(s);
+        }
+    }
     
 private:
-    File rootDirectory { File::getCurrentWorkingDirectory() };
+    std::filesystem::path rootDirectory { std::filesystem::current_path() };
     AudioFormatManager afManager;
     AudioBuffer<float> tempBuffer;
     int numGroups { 0 };
     int numMasters { 0 };
     ThreadPool fileLoadingPool { config::numLoadingThreads };
-    std::string parseInclude(const std::string& line);
-    std::string readSfzFile(const juce::File &file);
-    std::string expandDefines(const std::string& str);
+    // std::string parseInclude(const std::string& line);
+    // std::string readSfzFile(const juce::File &file);
+    // std::string expandDefines(const std::string& str);
+    void readSfzLines(const std::filesystem::path &fileName, std::vector<std::string>& lines) noexcept;
     SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
     int samplesPerBlock { config::bufferSize };
     std::list<SfzVoice> voices;
     std::vector<SfzRegion> regions;
-    std::vector<File> includedFiles;
+    std::vector<std::filesystem::path> includedFiles;
     CCValueArray ccState;
     std::vector<CCNamePair> ccNames;
+    std::map<std::string, std::string> defines;
 
     void resetMidiState();
     void checkRegionsForActivation(const MidiMessage& msg, int timestamp);

@@ -31,7 +31,7 @@ struct SfzOpcode
 {
     SfzOpcode() = delete;
     SfzOpcode(std::string_view inputOpcode, std::string_view inputValue)
-    : value(trimView(inputValue))
+    :opcode(inputOpcode), value(inputValue)
     {
         if (std::isdigit(inputOpcode.back()))
         {
@@ -46,7 +46,7 @@ struct SfzOpcode
                 const auto numberLength = std::distance(firstDigitPtr, inputOpcode.end());
                 std::string parameterNum (firstDigitPtr, numberLength);
                 parameter = std::stoi(parameterNum);
-                opcode = std::string_view(inputOpcode.data(), numberLength);
+                opcode = std::string_view(inputOpcode.data(), inputOpcode.size() - numberLength);
             }
             catch (const std::exception& e [[maybe_unused]])
             {
@@ -64,10 +64,8 @@ struct SfzOpcode
             //     parameter = returnValue;
             // opcode = std::string_view(inputOpcode.data(), std::distance(inputOpcode.data(), lastCharPtr + 1)  );
         }
-        else
-        {
-            opcode = inputOpcode;
-        }
+        trimView(value);
+        trimView(opcode);
     }
 
     std::string_view opcode{};

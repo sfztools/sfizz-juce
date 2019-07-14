@@ -21,8 +21,13 @@
 
 #include "SfzSynth.h"
 #include <string>
+#include <fstream>
 #include <regex>
+#include <algorithm>
 #include <string_view>
+
+using svregex_iterator = std::regex_iterator<std::string_view::const_iterator>;
+using svmatch_results = std::match_results<std::string_view::const_iterator>;
 
 SfzSynth::SfzSynth()
 {
@@ -59,91 +64,175 @@ void SfzSynth::initalizeVoices(int numVoices)
 	}
 }
 
-std::string SfzSynth::parseInclude(const std::string& line)
+// std::string SfzSynth::parseInclude(const std::string& line)
+// {
+// 	std::smatch includeMatch;
+// 	if (std::regex_search(line, includeMatch, SfzRegexes::includes))
+// 	{
+// 		auto includedFilename = includeMatch[1];
+// 		File newFile { rootDirectory.getChildFile(String(includedFilename)) };
+// 		if (!newFile.exists())
+// 		{
+// 			DBG("File not found: " << includedFilename);
+// 			return line;
+// 		}
+
+// 		// Check if file was included
+// 		auto alreadyIncluded = std::find(includedFiles.begin(), includedFiles.end(), newFile);
+// 		if (alreadyIncluded != includedFiles.end())
+// 		{
+// 			// File was already included: there's an include loop somewhere...
+// 			DBG("File already included: " << includedFilename);
+// 			return line;
+// 		}
+
+// 		return readSfzFile(newFile);
+// 	}
+// 	return line;
+// }
+
+void SfzSynth::readSfzLines(const std::filesystem::path &fileName, std::vector<std::string>& lines) noexcept
 {
-	std::smatch includeMatch;
-	if (std::regex_search(line, includeMatch, SfzRegexes::includes))
+	std::ifstream fileStream(fileName.c_str());
+	if (!fileStream)
+		return;
+
+	svmatch_results includeMatch;
+	svmatch_results defineMatch;
+
+	std::string tmpString;
+	while (std::getline(fileStream, tmpString))
 	{
-		auto includedFilename = includeMatch[1];
-		File newFile { rootDirectory.getChildFile(String(includedFilename)) };
-		if (!newFile.exists())
+		std::string_view tmpView { tmpString };
+		if (auto position = tmpView.find("//"); position != tmpView.npos)
+			tmpView.remove_suffix(tmpView.size() - position);
+		
+		// TODO: check that we only expect 1 include per line, otherwise we need to loop and update
+		if (std::regex_match(tmpView.begin(), tmpView.end(), includeMatch, SfzRegexes::includes))
 		{
-			DBG("File not found: " << includedFilename);
-			return line;
+			auto includePath = includeMatch.str(1);
+			std::replace(includePath.begin(), includePath.end(), '\\', '/');
+			auto newFile = rootDirectory / includePath;			
+			auto alreadyIncluded = std::find(includedFiles.begin(), includedFiles.end(), newFile);
+			if (std::filesystem::exists(newFile) && alreadyIncluded == includedFiles.end())
+			{
+				includedFiles.push_back(newFile);
+				readSfzLines(newFile, lines);
+			}
+			continue;
 		}
 
-		// Check if file was included
-		auto alreadyIncluded = std::find(includedFiles.begin(), includedFiles.end(), newFile);
-		if (alreadyIncluded != includedFiles.end())
+		// TODO: check that we only expect 1 define per line, otherwise we need to loop and update
+		// tmpView.remove_prefix(defineMatch.position(0));
+		if (std::regex_match(tmpView.begin(), tmpView.end(), defineMatch, SfzRegexes::defines))
 		{
-			// File was already included: there's an include loop somewhere...
-			DBG("File already included: " << includedFilename);
-			return line;
+			defines[defineMatch.str(1)] = defineMatch.str(2);
+			continue;
 		}
 
-		return readSfzFile(newFile);
-	}
-	return line;
-}
+		trimView(tmpView);
+		if (tmpView.empty())
+			continue;
 
-std::string SfzSynth::readSfzFile(const juce::File &file)
-{
-	std::string fullString;
-	fullString.reserve(file.getSize());
-	StringArray destLines;
-	file.readLines(destLines);
-	includedFiles.push_back(file);
+		std::string newString;
+		newString.reserve(tmpString.length());
+		std::string::size_type lastPos = 0;
+    	std::string::size_type findPos = tmpView.find('$', lastPos);
 
-	if (destLines.size() == 0)
-		return {};
-
-	for (auto& line: destLines)
-	{
-		auto currentLine = line.toStdString();
-		currentLine = removeEOL(currentLine);
-		currentLine = removeComment(currentLine);
-		currentLine = parseInclude(currentLine);
-		if (!testEmptyLine(currentLine))
+		while(findPos < tmpView.npos)
 		{
-			fullString += currentLine;
-			fullString += ' ';
+			newString.append(tmpView, lastPos, findPos - lastPos);
+
+			for (auto& definePair: defines)
+			{
+				std::string_view candidate = tmpView.substr(findPos, definePair.first.length());
+				if (candidate.compare(definePair.first) == 0)
+				{
+					newString += definePair.second;
+					lastPos = findPos + definePair.first.length() - 1;
+					break;
+				}
+			}
+			lastPos = findPos + 1;
+			findPos = tmpView.find('$', lastPos);
 		}
-	}
 
-	return fullString;
+		// Care for the rest after last occurrence
+		newString += tmpView.substr(lastPos);
+		lines.push_back(std::move(newString));		
+	}
 }
 
-std::string SfzSynth::expandDefines(const std::string& str)
-{
-	auto defineIterator = std::sregex_iterator(str.begin(), str.end(), SfzRegexes::defines);
-	auto outputString = str;
-	const auto regexEnd = std::sregex_iterator();
-	for (; defineIterator != regexEnd; ++defineIterator)
-  	{
-		auto fullMatch = defineIterator->str(0);
-		auto variableName = defineIterator->str(1);
-		auto variableValue = defineIterator->str(2);
-		fullMatch = std::regex_replace(fullMatch, std::regex(R"(\$)"), R"(\$)");
-		variableName = std::regex_replace(variableName, std::regex(R"(\$)"), R"(\$)");
-		outputString = std::regex_replace(outputString, std::regex(fullMatch), "");
-		outputString = std::regex_replace(outputString, std::regex(variableName), variableValue);
-	}
-	return outputString;
-}
+// std::string SfzSynth::readSfzFile(const juce::File &file)
+// {
+// 	std::vector<std::string> lines;
+// 	std::string fullString;
+// 	fullString.reserve(file.getSize());
+// 	StringArray destLines;
+// 	file.readLines(destLines);
+// 	// includedFiles.push_back(file);
 
-bool SfzSynth::loadSfzFile(const juce::File &file)
+// 	if (destLines.size() == 0)
+// 		return {};
+
+// 	for (auto& line: destLines)
+// 	{
+// 		auto currentLine = line.toStdString();
+// 		currentLine = removeEOL(currentLine);
+// 		currentLine = removeComment(currentLine);
+// 		currentLine = parseInclude(currentLine);
+// 		if (!testEmptyLine(currentLine))
+// 		{
+// 			fullString += currentLine;
+// 			fullString += ' ';
+// 		}
+// 	}
+
+// 	return fullString;
+// }
+
+// std::string SfzSynth::expandDefines(const std::string& str)
+// {
+// 	auto defineIterator = std::sregex_iterator(str.begin(), str.end(), SfzRegexes::defines);
+// 	auto outputString = str;
+// 	const auto regexEnd = std::sregex_iterator();
+// 	for (; defineIterator != regexEnd; ++defineIterator)
+//   	{
+// 		auto fullMatch = defineIterator->str(0);
+// 		auto variableName = defineIterator->str(1);
+// 		auto variableValue = defineIterator->str(2);
+// 		fullMatch = std::regex_replace(fullMatch, std::regex(R"(\$)"), R"(\$)");
+// 		variableName = std::regex_replace(variableName, std::regex(R"(\$)"), R"(\$)");
+// 		outputString = std::regex_replace(outputString, std::regex(fullMatch), "");
+// 		outputString = std::regex_replace(outputString, std::regex(variableName), variableValue);
+// 	}
+// 	return outputString;
+// }
+
+bool SfzSynth::loadSfzFile(const std::filesystem::path &file)
 {
 	clear();
-	if (!file.existsAsFile())
+	const auto sfzFile = rootDirectory / file;
+	if (!std::filesystem::exists(sfzFile))
 		return false;
 	
-	rootDirectory = file.getParentDirectory();
-	filePool.setRootDirectory(rootDirectory);
-	const auto fullString = expandDefines(readSfzFile(file));
-	const std::string_view fullStringView { fullString };
+	rootDirectory = file.parent_path();
+	filePool.setRootDirectory(File(rootDirectory.string()));
+	std::vector<std::string> lines;
+	readSfzLines(file, lines);
 
-	using svregex_iterator = std::regex_iterator<std::string_view::const_iterator>;
-	using svmatch_results = std::match_results<std::string_view::const_iterator>;
+	std::size_t fullLength = 0;
+	for (const auto &line : lines) 
+		fullLength += line.length() + 1;
+
+	std::string fullString;
+	fullString.reserve(fullLength);
+	for (const auto &line : lines)
+	{
+		fullString += line;
+		fullString += ' ';
+	} 
+	const std::string_view fullStringView { fullString };
 
 	svregex_iterator headerIterator(fullStringView.cbegin(), fullStringView.cend(), SfzRegexes::headers);
 	const auto regexEnd = svregex_iterator();
@@ -160,7 +249,7 @@ bool SfzSynth::loadSfzFile(const juce::File &file)
 	bool hasControl = false;
 	
 	auto buildRegion = [&, this]() {
-		regions.emplace_back(rootDirectory, filePool);
+		regions.emplace_back(File(rootDirectory.string()), filePool);
 		auto& region = regions.back(); // For some reason using auto& region up there does not work?!
 		// Successively apply the opcodes alread read to the parameter structure
 		for (auto& opcode: globalMembers)
@@ -365,6 +454,7 @@ void SfzSynth::clear()
 		voice.reset();
 	filePool.clear();
 	resetMidiState();
+	defines.clear();
 }
 
 void SfzSynth::resetMidiState()

@@ -71,7 +71,7 @@ public:
     void loadSfz(const File& sfzFile)
     {
         sfzSynth.clear();
-        sfzSynth.loadSfzFile(sfzFile);
+        sfzSynth.loadSfzFile(sfzFile.getFullPathName().toStdString());
     }
 
     StringArray getRegionList() const

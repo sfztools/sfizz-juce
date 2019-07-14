@@ -2,6 +2,7 @@
 #include "catch2/catch.hpp"
 #include "../Source/SfzRegion.h"
 #include "../Source/SfzSynth.h"
+#include <filesystem>
 using namespace Catch::literals;
 
 TEST_CASE("Basic regions", "File tests")
@@ -9,7 +10,7 @@ TEST_CASE("Basic regions", "File tests")
     SECTION("Single region (regions_one.sfz)")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Regions/regions_one.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Regions/regions_one.sfz");
         REQUIRE( synth.getNumRegions() == 1 );
         REQUIRE( synth.getRegionView(0)->sample == "dummy.wav" );
     }
@@ -17,7 +18,7 @@ TEST_CASE("Basic regions", "File tests")
     SECTION("Multiple regions (regions_many.sfz)")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Regions/regions_many.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Regions/regions_many.sfz");
         REQUIRE( synth.getNumRegions() == 3 );
         REQUIRE( synth.getRegionView(0)->sample == "dummy.wav" );
         REQUIRE( synth.getRegionView(1)->sample == "dummy.1.wav" );
@@ -27,7 +28,7 @@ TEST_CASE("Basic regions", "File tests")
     SECTION("Basic opcodes (regions_opcodes.sfz)")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Regions/regions_opcodes.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Regions/regions_opcodes.sfz");
         REQUIRE( synth.getNumRegions() == 1 );
         REQUIRE( synth.getRegionView(0)->channelRange == Range<uint8_t>(2, 14) );  
     }
@@ -35,7 +36,7 @@ TEST_CASE("Basic regions", "File tests")
     SECTION("Underscore opcodes (underscore_opcodes.sfz)")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Regions/underscore_opcodes.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Regions/underscore_opcodes.sfz");
         REQUIRE( synth.getNumRegions() == 1 );
         REQUIRE( synth.getRegionView(0)->loopMode == SfzLoopMode::loop_sustain );  
     }
@@ -46,15 +47,41 @@ TEST_CASE("Includes", "File tests")
     SECTION("Local include")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Includes/root_local.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Includes/root_local.sfz");
         REQUIRE( synth.getNumRegions() == 1 );
         REQUIRE( synth.getRegionView(0)->sample == "dummy.wav" );
+    }
+
+    SECTION("Multiple includes")
+    {
+        SfzSynth synth;
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Includes/multiple_includes.sfz");
+        REQUIRE( synth.getNumRegions() == 2 );
+        REQUIRE( synth.getRegionView(0)->sample == "dummy.wav" );
+        REQUIRE( synth.getRegionView(1)->sample == "dummy2.wav" );
+    }
+
+    SECTION("Multiple includes with comments")
+    {
+        SfzSynth synth;
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Includes/multiple_includes_with_comments.sfz");
+        REQUIRE( synth.getNumRegions() == 2 );
+        REQUIRE( synth.getRegionView(0)->sample == "dummy.wav" );
+        REQUIRE( synth.getRegionView(1)->sample == "dummy2.wav" );
     }
 
     SECTION("Subdir include")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Includes/root_subdir.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Includes/root_subdir.sfz");
+        REQUIRE( synth.getNumRegions() == 1 );
+        REQUIRE( synth.getRegionView(0)->sample == "dummy_subdir.wav" );
+    }
+
+    SECTION("Subdir include Win")
+    {
+        SfzSynth synth;
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Includes/root_subdir_win.sfz");
         REQUIRE( synth.getNumRegions() == 1 );
         REQUIRE( synth.getRegionView(0)->sample == "dummy_subdir.wav" );
     }
@@ -62,7 +89,7 @@ TEST_CASE("Includes", "File tests")
     SECTION("Recursive include")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Includes/root_recursive.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Includes/root_recursive.sfz");
         REQUIRE( synth.getNumRegions() == 2 );
         REQUIRE( synth.getRegionView(0)->sample == "dummy_recursive2.wav" );
         REQUIRE( synth.getRegionView(1)->sample == "dummy_recursive1.wav" );
@@ -71,7 +98,7 @@ TEST_CASE("Includes", "File tests")
     SECTION("Include loops")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/Includes/root_loop.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/Includes/root_loop.sfz");
         REQUIRE( synth.getNumRegions() == 2 );
         REQUIRE( synth.getRegionView(0)->sample == "dummy_loop2.wav" );
         REQUIRE( synth.getRegionView(1)->sample == "dummy_loop1.wav" );
@@ -83,7 +110,7 @@ TEST_CASE("Defines", "File tests")
     SECTION("Define test")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/defines.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/defines.sfz");
         REQUIRE( synth.getNumRegions() == 3 );
         REQUIRE( synth.getRegionView(0)->keyRange == Range<uint8_t>(36, 36) );
         REQUIRE( synth.getRegionView(1)->keyRange == Range<uint8_t>(38, 38) );
@@ -97,7 +124,7 @@ TEST_CASE("Header hierarchy", "File tests")
     SECTION("Group from AVL")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/groups_avl.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/groups_avl.sfz");
         REQUIRE( synth.getNumRegions() == 5 );
         for (int i = 0; i < synth.getNumRegions(); ++i)
         {
@@ -114,7 +141,7 @@ TEST_CASE("Header hierarchy", "File tests")
     SECTION("Full hierarchy")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/basic_hierarchy.sfz");
         REQUIRE( synth.getNumRegions() == 8 );
         for (int i = 0; i < synth.getNumRegions(); ++i)
         {
@@ -156,9 +183,9 @@ TEST_CASE("Header hierarchy", "File tests")
     SECTION("Reloading files")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/basic_hierarchy.sfz");
         REQUIRE( synth.getNumRegions() == 8 );
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/basic_hierarchy.sfz");
         REQUIRE( synth.getNumRegions() == 8 );
     }
 
@@ -166,7 +193,7 @@ TEST_CASE("Header hierarchy", "File tests")
     {
         {
             SfzSynth synth;
-            synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy.sfz"));
+            synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/basic_hierarchy.sfz");
             REQUIRE( synth.getNumRegions() == 8 );
             REQUIRE( synth.getRegionView(0)->sample == "Regions/dummy.wav" );
             REQUIRE( synth.getRegionView(1)->sample == "Regions/dummy.1.wav" );
@@ -180,7 +207,7 @@ TEST_CASE("Header hierarchy", "File tests")
 
         {
             SfzSynth synth;
-            synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/basic_hierarchy_antislash.sfz"));
+            synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/basic_hierarchy_antislash.sfz");
             REQUIRE( synth.getNumRegions() == 8 );
             REQUIRE( synth.getRegionView(0)->sample == "Regions/dummy.wav" );
             REQUIRE( synth.getRegionView(1)->sample == "Regions/dummy.1.wav" );
@@ -199,7 +226,7 @@ TEST_CASE("MeatBass", "File tests")
     SECTION("Pizz basic")
     {
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/SpecificBugs/MeatBassPizz/Programs/pizz.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/SpecificBugs/MeatBassPizz/Programs/pizz.sfz");
         REQUIRE( synth.getNumRegions() == 4 );
         for (int i = 0; i < synth.getNumRegions(); ++i)
         {
@@ -226,7 +253,7 @@ TEST_CASE("Switches with files", "File tests")
         const double sampleRate { 48000 };
         const int blockSize { 256 };
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/sw_default.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/sw_default.sfz");
         REQUIRE( synth.getNumRegions() == 4 );
         REQUIRE( !synth.getRegionView(0)->isSwitchedOn() );
         REQUIRE( synth.getRegionView(1)->isSwitchedOn() );
@@ -239,7 +266,7 @@ TEST_CASE("Switches with files", "File tests")
         const double sampleRate { 48000 };
         const int blockSize { 256 };
         SfzSynth synth;
-        synth.loadSfzFile(File::getCurrentWorkingDirectory().getChildFile("Tests/TestFiles/sw_default.sfz"));
+        synth.loadSfzFile(std::filesystem::current_path() / "Tests/TestFiles/sw_default.sfz");
         REQUIRE( synth.getNumRegions() == 4 );
         REQUIRE( !synth.getRegionView(0)->isSwitchedOn() );
         REQUIRE( synth.getRegionView(1)->isSwitchedOn() );
