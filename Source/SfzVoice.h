@@ -91,10 +91,6 @@ private:
     SfzCCEnvelope panEnvelope;
     SfzCCEnvelope positionEnvelope;
     SfzCCEnvelope widthEnvelope;
-    int lastPanEventTimestamp { 0 };
-    int lastAmplitudeEventTimestamp { 0 };
-    int lastPositionEventTimestamp { 0 };
-    int lastWidthEventTimestamp { 0 };
 
     // Internal position and counters
     int initialDelay{0};
@@ -112,6 +108,6 @@ private:
     void release(int timestamp, bool useFastRelease = false);
     void resetResamplers();
     JobStatus runJob() override;
-
+    void clearEnvelopes() noexcept;
     JUCE_LEAK_DETECTOR(SfzVoice)
 };

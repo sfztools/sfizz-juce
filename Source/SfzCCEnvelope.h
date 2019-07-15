@@ -25,9 +25,9 @@
 
 struct EnvelopeEvent
 {
-    EnvelopeEvent(int delay, uint8_t ccValue) 
-    : delay(delay), ccValue(ccValue) {}
-    int delay;
+    EnvelopeEvent(int timestamp, uint8_t ccValue) 
+    : timestamp(timestamp), ccValue(ccValue) {}
+    int timestamp;
     uint8_t ccValue;
 };
 
@@ -35,9 +35,8 @@ class SfzCCEnvelope
 {
 public:
     SfzCCEnvelope(int maximumSize = config::defaultSamplesPerBlock)
-    : size(maximumSize)
     {
-        points.reserve(maximumSize);
+        setSize(maximumSize);
         smoothedValue.setCurrentAndTargetValue(0.0f);
     }
 
@@ -57,22 +56,30 @@ public:
         smoothedValue.setCurrentAndTargetValue(normalizeCC(ccValue));
     }
 
-    void addEvent(int delay, uint8_t ccValue) noexcept
+    void clear() noexcept
+    {
+        points.clear();
+        lastTimestamp = 0;
+        readIndex = 0;
+    }
+
+    void addEvent(int timestamp, uint8_t ccValue) noexcept
     {
         if (getFreeSpace() == 0)
             return;
 
-        points[writeIndex] = EnvelopeEvent(delay, ccValue);
-        writeIndex = (writeIndex + 1) % size;
+        points.emplace_back(timestamp, ccValue);
     };
 
     float getNextValue() noexcept
     {
         if (!smoothedValue.isSmoothing() && getNumReady() > 0)
         {
-            smoothedValue.reset(points[readIndex].delay);
+            const auto delay = std::max(0, points[readIndex].timestamp - lastTimestamp);
+            smoothedValue.reset(delay);
             smoothedValue.setTargetValue(normalizeCC(points[readIndex].ccValue));
-            readIndex = (readIndex + 1) % size;
+            lastTimestamp = points[readIndex].timestamp;
+            readIndex = (readIndex + 1);
         }
         return transformValue(smoothedValue.getNextValue());
     }
@@ -80,18 +87,12 @@ public:
 private:
     int getNumReady() const noexcept
     {
-        if (writeIndex >= readIndex)
-            return writeIndex - readIndex;
-        else
-            return size - readIndex + writeIndex;
+        return points.size() - readIndex;
     }
 
     int getFreeSpace() const noexcept
     {
-        if (writeIndex >= readIndex)
-            return size - writeIndex + readIndex;
-        else
-            return readIndex - writeIndex;
+        return points.capacity() - points.size();
     }
 
     std::function<float(float)> transformValue { [] (float ccValue) -> float { return ccValue; } };
@@ -100,4 +101,5 @@ private:
     int readIndex { 0 };
     int writeIndex { 0 };
     int size { 0 };
+    int lastTimestamp { 0 };
 };
