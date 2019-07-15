@@ -7,9 +7,10 @@ project(sfizz VERSION 1.0.0 LANGUAGES CXX)
 if(UNIX)
     set(JUCE_ROOT_DIR "~/source/JUCE")
 else()
-    set(JUCE_ROOT_DIR "c:/JUCE")
+    set(JUCE_ROOT_DIR "C:/Users/paulf/source/JUCE")
 endif()
-set(ASIO_SDK "C:/Users/paulf/source/ASIOSDK2.3.2/common")
+
+set(ASIO_SDK "C:/Users/paulf/source/ASIOSDK2.3.3/common")
 
 
 # Set these to match the juce header file, modulo the audio plugin clients
