@@ -60,7 +60,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
                 loopMode = SfzLoopMode::loop_sustain;
                 break;
             default:
-                DBG("Unkown loop mode:" << opcode.value);
+                DBG("Unkown loop mode:" << std::string(opcode.value));
         }
         break;
     case hash("loopend"):
@@ -82,7 +82,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
                 offMode = SfzOffMode::normal;
                 break;
             default:
-                DBG("Unkown off mode:" << opcode.value);
+                DBG("Unkown off mode:" << std::string(opcode.value));
         }
         break;
     // Region logic: key mapping
@@ -125,7 +125,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
                 velocityOverride = SfzVelocityOverride::previous;
                 break;
             default:
-                DBG("Unknown velocity mode: " << opcode.value);
+                DBG("Unknown velocity mode: " << std::string(opcode.value));
         }
         break;
     // Region logic: internal conditions
@@ -157,7 +157,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
                 trigger = SfzTrigger::release_key;
                 break;
             default:
-                DBG("Unknown trigger mode: " << opcode.value);
+                DBG("Unknown trigger mode: " << std::string(opcode.value));
         }
         break;
     case hash("on_locc"): 
@@ -213,7 +213,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
             crossfadeKeyCurve = SfzCrossfadeCurve::gain;
             break;
         default:
-            DBG("Unknown crossfade power curve: " << opcode.value);
+            DBG("Unknown crossfade power curve: " << std::string(opcode.value));
         }
         break;
     case hash("xf_velcurve"):
@@ -226,7 +226,7 @@ void SfzRegion::parseOpcode(const SfzOpcode& opcode)
             crossfadeVelCurve = SfzCrossfadeCurve::gain;
             break;
         default:
-            DBG("Unknown crossfade power curve: " << opcode.value);
+            DBG("Unknown crossfade power curve: " << std::string(opcode.value));
         }
         break;
 

@@ -193,8 +193,8 @@ bool SfzSynth::loadSfzFile(const std::filesystem::path &file)
 		svmatch_results headerMatch = *headerIterator;
 
 		// Can't use uniform initialization here because it generates narrowing conversions
-		const std::string_view header (headerMatch[1].first, headerMatch[1].length());
-		const std::string_view members (headerMatch[2].first, headerMatch[2].length());        
+		const std::string_view header(&*headerMatch[1].first, headerMatch[1].length());
+		const std::string_view members(&*headerMatch[2].first, headerMatch[2].length());
 		auto paramIterator = svregex_iterator (members.cbegin(), members.cend(), SfzRegexes::members);
 
 		// If we had a building region and we encounter a new header we have to build it
@@ -241,15 +241,15 @@ bool SfzSynth::loadSfzFile(const std::filesystem::path &file)
 				DBG("Effect header not implemented");
 				break;
 			default:
-				DBG("unknown header: " << header);
+				DBG("unknown header: " << std::string(header));
 		}
 
 		// Store or handlemembers
 		for (; paramIterator != regexEnd; ++paramIterator)
 		{
 			svmatch_results paramMatch = *paramIterator;
-			const std::string_view opcode (paramMatch[1].first, paramMatch[1].length());
-			const std::string_view value (paramMatch[2].first, paramMatch[2].length());
+			const std::string_view opcode(&*paramMatch[1].first, paramMatch[1].length());
+			const std::string_view value(&*paramMatch[2].first, paramMatch[2].length());
 
 			// Store the members depending on the header
 			switch (hash(header))
@@ -293,7 +293,7 @@ bool SfzSynth::loadSfzFile(const std::filesystem::path &file)
 				}
 					break;
 				default:
-					DBG("Unknown/unsupported opcode in <control> header: " << lastOpcode.opcode);
+					DBG("Unknown/unsupported opcode in <control> header: " << std::string(lastOpcode.opcode));
 				}
 			}
 			break;

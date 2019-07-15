@@ -33,24 +33,18 @@ struct SfzOpcode
     SfzOpcode(std::string_view inputOpcode, std::string_view inputValue)
     :opcode(inputOpcode), value(inputValue)
     {
-        if (std::isdigit(inputOpcode.back()))
+        if (const auto lastCharIndex = inputOpcode.find_last_not_of("1234567890"); lastCharIndex != inputOpcode.npos)
         {
-
-            const auto lastChar = std::find_if(inputOpcode.rbegin(), inputOpcode.rend(), [](const auto& ch) { return !std::isdigit(ch); });
-            if (lastChar == inputOpcode.rend())
-                return;
-            
             try
             {
-                const auto firstDigitPtr = &*lastChar + 1;
-                const auto numberLength = std::distance(firstDigitPtr, inputOpcode.end());
-                std::string parameterNum (firstDigitPtr, numberLength);
+                const auto firstNumIndex = lastCharIndex + 1;
+                const auto numberLength = inputOpcode.size() - firstNumIndex;
+                std::string parameterNum(inputOpcode.substr(firstNumIndex, numberLength));
                 parameter = std::stoi(parameterNum);
-                opcode = std::string_view(inputOpcode.data(), inputOpcode.size() - numberLength);
+                opcode = std::string_view(inputOpcode.data(), firstNumIndex);
             }
             catch (const std::exception& e [[maybe_unused]])
             {
-                opcode = inputOpcode;
                 parameter = {};
             }
             // Sketchy support for charconv in current versions of XCode, GCC, etc...
