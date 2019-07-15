@@ -48,6 +48,29 @@ void SfzSynth::initalizeVoices(int numVoices)
 		voice.prepareToPlay(sampleRate, samplesPerBlock);
 	}
 }
+
+void removeCommentOnLine(std::string_view& line)
+{
+	if (auto position = line.find("//"); position != line.npos)
+		line.remove_suffix(line.size() - position);
+}
+
+std::string joinIntoString(const std::vector<std::string>& lines)
+{
+	std::size_t fullLength = 0;
+	for (const auto &line : lines) 
+		fullLength += line.length() + 1;
+
+	std::string fullString;
+	fullString.reserve(fullLength);
+	for (const auto &line : lines)
+	{
+		fullString += line;
+		fullString += ' ';
+	}
+	return std::move(fullString);
+}
+
 void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<std::string>& lines) noexcept
 {
 	std::ifstream fileStream(fileName.c_str());
@@ -58,50 +81,38 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 	svmatch_results defineMatch;
 
 	std::string tmpString;
-	auto state = fileStream.rdstate();
 	while (std::getline(fileStream, tmpString))
 	{
-		state = fileStream.rdstate();
 		std::string_view tmpView { tmpString };
-		
-		if (auto position = tmpView.find("//"); position != tmpView.npos)
-			tmpView.remove_suffix(tmpView.size() - position);
-		
+
+		removeCommentOnLine(tmpView);
 		trimView(tmpView);
-		
+
 		if (tmpView.empty())
 			continue;
 
-		// TODO: enable partial matches on the regex, one way or another
-		// TODO: add tests for crap/whitespace at the end of the define and include lines
-
 		// TODO: check that we only expect 1 include per line, otherwise we need to loop and update
-		if (std::regex_match(tmpView.begin(), tmpView.end(), includeMatch, SfzRegexes::includes))
+		if (std::regex_search(tmpView.begin(), tmpView.end(), includeMatch, SfzRegexes::includes))
 		{
 			auto includePath = includeMatch.str(1);
 			std::replace(includePath.begin(), includePath.end(), '\\', '/');
-			auto newFile = rootDirectory / includePath;			
+			const auto newFile = rootDirectory / includePath;			
 			auto alreadyIncluded = std::find(includedFiles.begin(), includedFiles.end(), newFile);
 			if (std::filesystem::exists(newFile) && alreadyIncluded == includedFiles.end())
 			{
 				includedFiles.push_back(newFile);
 				readSfzFile(newFile, lines);
 			}
-			state = fileStream.rdstate();
 			continue;
 		}
 
 		// TODO: check that we only expect 1 define per line, otherwise we need to loop and update
 		// tmpView.remove_prefix(defineMatch.position(0));
-		if (std::regex_match(tmpView.begin(), tmpView.end(), defineMatch, SfzRegexes::defines))
+		if (std::regex_search(tmpView.begin(), tmpView.end(), defineMatch, SfzRegexes::defines))
 		{
 			defines[defineMatch.str(1)] = defineMatch.str(2);
 			continue;
 		}
-
-		trimView(tmpView);
-		if (tmpView.empty())
-			continue;
 
 		std::string newString;
 		newString.reserve(tmpString.length());
@@ -136,26 +147,16 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 bool SfzSynth::loadSfzFile(const std::filesystem::path &file)
 {
 	clear();
-	const auto sfzFile = rootDirectory / file;
+	const auto sfzFile = file.is_absolute() ? file : rootDirectory / file;
 	if (!std::filesystem::exists(sfzFile))
 		return false;
-	
+
 	rootDirectory = file.parent_path();
 	filePool.setRootDirectory(File(rootDirectory.string()));
 	std::vector<std::string> lines;
 	readSfzFile(file, lines);
 
-	std::size_t fullLength = 0;
-	for (const auto &line : lines) 
-		fullLength += line.length() + 1;
-
-	std::string fullString;
-	fullString.reserve(fullLength);
-	for (const auto &line : lines)
-	{
-		fullString += line;
-		fullString += ' ';
-	} 
+	const auto fullString = joinIntoString(lines);
 	const std::string_view fullStringView { fullString };
 
 	svregex_iterator headerIterator(fullStringView.cbegin(), fullStringView.cend(), SfzRegexes::headers);
