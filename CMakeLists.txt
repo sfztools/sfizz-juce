@@ -12,6 +12,13 @@ endif()
 
 set(ASIO_SDK "C:/Users/paulf/source/ASIOSDK2.3.3/common")
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT ANDROID)
+    add_compile_options(-stdlib=libc++)
+    # Presumably need the above for linking too, maybe other options missing as well
+    add_link_options(-stdlib=libc++)   # New command on CMake master, not in 3.12 release
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set these to match the juce header file, modulo the audio plugin clients
 set(JUCE_MODULES
