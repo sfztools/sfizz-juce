@@ -95,7 +95,7 @@ private:
 class SfzpluginAudioProcessorEditor  : public AudioProcessorEditor, public Timer
 {
 public:
-    SfzpluginAudioProcessorEditor (SfzpluginAudioProcessor&, MidiKeyboardState&);
+    SfzpluginAudioProcessorEditor (SfzpluginAudioProcessor&, MidiKeyboardState&, const SfzSynth&);
     ~SfzpluginAudioProcessorEditor();
 
     //==============================================================================
@@ -114,6 +114,7 @@ private:
     // access the processor object that created it.
     SfzpluginAudioProcessor& processor;
     MidiKeyboardComponent keyboardComponent;
+    const SfzSynth& synth;
     TextButton openButton;
     Label numVoices;
     SfzFileChooser sfzChooser;
@@ -126,6 +127,12 @@ private:
             text << "Groups: " << processor.getNumGroups() << newLine;
             text << "Regions: " << processor.getNumRegions() << newLine;
             text << "Unknown opcodes: " << processor.getUnknownOpcodes().joinIntoString(", ") << newLine;
+            text << "Included Files: " << newLine;
+            for (const auto& included: synth.getIncludedFiles())
+                text << "- " << included << newLine;  
+            text << "Defines: " << newLine;
+            for (const auto& define: synth.getDefines())
+                text << "- " << define.first << ": " << define.second << newLine;  
             auto labels = processor.getCCLabels();
             text << "CC Labels: " << newLine;
             for (auto& label: labels)

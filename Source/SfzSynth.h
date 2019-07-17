@@ -54,7 +54,16 @@ public:
     { 
         return static_cast<int>(std::count_if(voices.cbegin(), voices.cend(), [](const auto& voice) { return voice.isPlaying(); })); 
     }
-    const std::map<std::string, std::string> getDefines() const { return defines; }
+    std::map<std::string, std::string> getDefines() const { return defines; }
+    std::vector<std::string> getIncludedFiles() const
+    {
+        std::vector<std::string> returnValue;
+        for (const auto& included: includedFiles)
+        {
+            returnValue.push_back(included.string());
+        }
+        return returnValue;
+    }
     
 private:
     std::filesystem::path rootDirectory { std::filesystem::current_path() };

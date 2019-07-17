@@ -170,7 +170,7 @@ bool SfzpluginAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* SfzpluginAudioProcessor::createEditor()
 {
-    return new SfzpluginAudioProcessorEditor (*this, this->keyboardState);
+    return new SfzpluginAudioProcessorEditor (*this, this->keyboardState, this->sfzSynth);
 }
 
 //==============================================================================
