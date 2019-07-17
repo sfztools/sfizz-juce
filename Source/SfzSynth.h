@@ -54,15 +54,7 @@ public:
     { 
         return static_cast<int>(std::count_if(voices.cbegin(), voices.cend(), [](const auto& voice) { return voice.isPlaying(); })); 
     }
-    inline void printDefines()
-    {
-        for (const auto& definePair: defines)
-        {
-            String s;
-            s << definePair.first << " = " << definePair.second;
-            DBG(s);
-        }
-    }
+    const std::map<std::string, std::string> getDefines() const { return defines; }
     
 private:
     std::filesystem::path rootDirectory { std::filesystem::current_path() };

@@ -47,6 +47,7 @@ namespace config
     inline constexpr double fastReleaseDuration { 0.01 };
     inline constexpr int leftChan { 0 };
     inline constexpr int rightChan { 0 };
+    inline constexpr char defineCharacter { '$' };
 }
 
 namespace SfzRegexes
@@ -127,4 +128,4 @@ inline void trimView(std::string_view& s)
     {
         s.remove_suffix(s.size());
     }    
-}
+} 

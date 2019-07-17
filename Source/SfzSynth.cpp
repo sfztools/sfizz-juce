@@ -91,9 +91,7 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 		if (tmpView.empty())
 			continue;
 
-		// TODO: Benchmarked http://quick-bench.com/DgtbPN-NoVqIItibyBv0r5_8vSE
-		// TODO: Put these in a sub function
-		// TODO: check that we only expect 1 include per line, otherwise we need to loop and update
+		// New #include
 		if (std::regex_search(tmpView.begin(), tmpView.end(), includeMatch, SfzRegexes::includes))
 		{
 			auto includePath = includeMatch.str(1);
@@ -108,18 +106,18 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 			continue;
 		}
 
-		// TODO: check that we only expect 1 define per line, otherwise we need to loop and update
-		// tmpView.remove_prefix(defineMatch.position(0));
+		// New #define
 		if (std::regex_search(tmpView.begin(), tmpView.end(), defineMatch, SfzRegexes::defines))
 		{
 			defines[defineMatch.str(1)] = defineMatch.str(2);
 			continue;
 		}
 
+		// Replace defined variables starting with $
 		std::string newString;
-		newString.reserve(tmpString.length());
+		newString.reserve(tmpView.length());
 		std::string::size_type lastPos = 0;
-    	std::string::size_type findPos = tmpView.find('$', lastPos);
+    	std::string::size_type findPos = tmpView.find(config::defineCharacter, lastPos);
 
 		while(findPos < tmpView.npos)
 		{
@@ -128,19 +126,24 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 			for (auto& definePair: defines)
 			{
 				std::string_view candidate = tmpView.substr(findPos, definePair.first.length());
-				if (candidate.compare(definePair.first) == 0)
+				if (candidate == definePair.first)
 				{
 					newString += definePair.second;
-					lastPos = findPos + definePair.first.length() - 1;
+					lastPos = findPos + definePair.first.length();
 					break;
 				}
 			}
-			// TODO: the dollar sign is not copied in the output if it is not a variable name
-			lastPos = findPos + 1;
-			findPos = tmpView.find('$', lastPos);
+			
+			if (lastPos <= findPos)
+			{
+				newString += config::defineCharacter;
+				lastPos = findPos + 1;
+			}
+
+			findPos = tmpView.find(config::defineCharacter, lastPos);
 		}
 
-		// Care for the rest after last occurrence
+		// Copy the rest of the string
 		newString += tmpView.substr(lastPos);
 		lines.push_back(std::move(newString));		
 	}
