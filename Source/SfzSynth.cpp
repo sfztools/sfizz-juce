@@ -91,6 +91,8 @@ void SfzSynth::readSfzFile(const std::filesystem::path& fileName, std::vector<st
 		if (tmpView.empty())
 			continue;
 
+		// TODO: Benchmarked http://quick-bench.com/DgtbPN-NoVqIItibyBv0r5_8vSE
+		// TODO: Put these in a sub function
 		// TODO: check that we only expect 1 include per line, otherwise we need to loop and update
 		if (std::regex_search(tmpView.begin(), tmpView.end(), includeMatch, SfzRegexes::includes))
 		{
@@ -244,7 +246,7 @@ bool SfzSynth::loadSfzFile(const std::filesystem::path &file)
 				DBG("unknown header: " << std::string(header));
 		}
 
-		// Store or handlemembers
+		// Store or handle members
 		for (; paramIterator != regexEnd; ++paramIterator)
 		{
 			svmatch_results paramMatch = *paramIterator;
