@@ -97,13 +97,16 @@ public:
         attackEnvelopeValue.reset(1);
         attackEnvelopeValue.setCurrentAndTargetValue(0.0f);
         attackEnvelopeValue.setTargetValue(1.0f);
+
         decayEnvelopeValue.reset(1);
         decayEnvelopeValue.setCurrentAndTargetValue(1.0f);
         decayEnvelopeValue.setTargetValue(config::virtuallyZero);
+
         releaseEnvelopeValue.reset(1);
         releaseEnvelopeValue.setCurrentAndTargetValue(1.0f);
         releaseEnvelopeValue.setTargetValue(config::virtuallyZero);
     }
+    
     void setSampleRate(double rate) noexcept { sampleRate = rate; }
 
     void prepare(const SfzEnvelopeGeneratorDescription& egDescription, const CCValueArray& ccValues, uint8_t velocity, uint32_t additionalDelay = 0) noexcept
@@ -116,12 +119,15 @@ public:
         remainingDelaySamples = additionalDelay + secondsToSamples(egDescription.getDelay(ccValues, velocity));
         remainingHoldSamples = secondsToSamples(egDescription.getHold(ccValues, velocity));
         sustainGain = normalizePercents(egDescription.getSustain(ccValues, velocity));
+
         attackEnvelopeValue.reset(secondsToSamples(egDescription.getAttack(ccValues, velocity)));
         attackEnvelopeValue.setCurrentAndTargetValue(0.0f);
         attackEnvelopeValue.setTargetValue(1.0f);
+
         releaseEnvelopeValue.reset(secondsToSamples(egDescription.getRelease(ccValues, velocity)));
         releaseEnvelopeValue.setCurrentAndTargetValue(1.0f);
         releaseEnvelopeValue.setTargetValue(config::virtuallyZero);
+
         decayEnvelopeValue.reset(secondsToSamples(egDescription.getDecay(ccValues, velocity)));
         decayEnvelopeValue.setCurrentAndTargetValue(1.0f);
         decayEnvelopeValue.setTargetValue(config::virtuallyZero);
