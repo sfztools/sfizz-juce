@@ -26,6 +26,7 @@
 #include <regex>
 #include <string>
 #include <optional>
+#include <string_view>
 
 struct SfzOpcode
 {
