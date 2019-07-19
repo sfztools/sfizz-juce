@@ -81,10 +81,12 @@ private:
     // Basic ratios for resampling
     double speedRatio { 1.0 };
     double pitchRatio { 1.0 };
+    float currentPhase { 0.0f };
+    float baseSinePitch { MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(SfzDefault::pitchKeycenter) };
 
     // Envelopes and states for the voice
     SfzVoiceState state { SfzVoiceState::idle };
-    float baseGain { 1.0 };
+    float baseGain { 1.0f };
 
     SfzEnvelopeGeneratorValue amplitudeEGEnvelope;
     SfzCCEnvelope amplitudeEnvelope;
@@ -104,10 +106,12 @@ private:
     // TODO : No need for shared pointers anymore
     LagrangeInterpolator leftResampler;
     LagrangeInterpolator rightResampler;
+    double decimalPosition { 0.0 };
 
     void release(int timestamp, bool useFastRelease = false);
     void resetResamplers();
     JobStatus runJob() override;
     void clearEnvelopes() noexcept;
+    void getNextSample(float& left, float& right);
     JUCE_LEAK_DETECTOR(SfzVoice)
 };

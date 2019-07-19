@@ -48,6 +48,7 @@ namespace config
     inline constexpr int leftChan { 0 };
     inline constexpr int rightChan { 0 };
     inline constexpr char defineCharacter { '$' };
+    inline constexpr int oversamplingFactor { 2 };
 }
 
 namespace SfzRegexes

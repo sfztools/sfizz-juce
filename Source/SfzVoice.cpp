@@ -344,43 +344,72 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
     else
     {
         int start1, size1, start2, size2;
-        fifo.prepareToRead(fifo.getNumReady(), start1, size1, start2, size2);
+        const int availableSamples = fifo.getNumReady();
+        fifo.prepareToRead(availableSamples, start1, size1, start2, size2);
         int fifoIdx { start1 };
-        int availableSamples { size1 };
-        int wrapAround { start1 + size1 - start2 };
-        int endPoint = start2 + size2;
+        int end1 { start1 + size1  - 1};
+        int nextIdx { 0 };
         int consumedSamples { 0 };
 
         // Sample reading and pitch correction
         for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
         {
-            auto* leftIn = buffer.getReadPointer(0, fifoIdx);
-            auto* rightIn = buffer.getReadPointer(1, fifoIdx);
             auto* leftOut = outputBuffer.getWritePointer(0, sampleIdx);
             auto* rightOut = outputBuffer.getWritePointer(1, sampleIdx);
-            leftResampler.process(pitchRatio * speedRatio, leftIn, leftOut, 1, availableSamples, wrapAround);
-            int samplesRead = rightResampler.process(pitchRatio * speedRatio, rightIn, rightOut, 1, availableSamples, wrapAround);
-            
-            fifoIdx += samplesRead;
-            availableSamples -= samplesRead;
-            consumedSamples += samplesRead;
-            if (availableSamples <= 0)
+
+            if (fifoIdx == end1)
             {
-                if (fifoIdx == endPoint || size2 == 0)
-                {
-                    break;
-                }
-                else
-                {
-                    fifoIdx = start2 - availableSamples;
-                    availableSamples += size2;
-                    wrapAround = 0;
-                }
+                nextIdx = start2;
             }
+            else if (fifoIdx > end1)
+            {
+                fifoIdx = start2 + fifoIdx - end1;
+                nextIdx = fifoIdx + 1;
+            }
+            else
+            {
+                nextIdx = fifoIdx + 1;
+            }
+            
+            *leftOut = buffer.getSample(0, fifoIdx) * (1 - decimalPosition) + buffer.getSample(0, nextIdx) * decimalPosition;
+            *rightOut = buffer.getSample(1, fifoIdx) * (1 - decimalPosition) + buffer.getSample(1, nextIdx) * decimalPosition;
+            
+            decimalPosition += speedRatio * pitchRatio;
+            const int sampleStep = static_cast<int>(std::floor(decimalPosition));
+
+            fifoIdx += sampleStep;
+            decimalPosition -= sampleStep;
+            consumedSamples += sampleStep;
+
+            if (consumedSamples > availableSamples)
+                break;
         }
 
         fifo.finishedRead(consumedSamples);
     }
+}
+
+void SfzVoice::getNextSample(float& left, float& right)
+{
+    if (region->isGenerator())
+    {
+        if (region->sample == "*silence")
+        {
+            left = 0;
+            right = 0;
+        }
+        else if (region->sample == "*sine")
+        {
+            const float phase = static_cast<float>(localTime / sampleRate) * baseSinePitch * static_cast<float>(pitchRatio);
+            left = std::sin(phase);
+            right = left;
+        }
+    }
+    else
+    {
+
+    }
+    localTime++;
 }
 
 void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
@@ -409,9 +438,6 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
         totalGain *= amplitudeEnvelope.getNextValue() / SfzDefault::amplitudeRange.getEnd();
         left *= totalGain;
         right *= totalGain;
-
-        // Time advances!
-        localTime++;
     }
 
     clearEnvelopes();
