@@ -351,6 +351,9 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
         int nextIdx { 0 };
         int consumedSamples { 0 };
 
+        auto** outputData = outputBuffer.getArrayOfWritePointers();
+        auto* leftChannel = outputData[0];
+        auto* rightChannel = outputData[1];
         // Sample reading and pitch correction
         for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
         {
@@ -371,11 +374,12 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
                 nextIdx = fifoIdx + 1;
             }
             
-            *leftOut = buffer.getSample(0, fifoIdx) * (1 - decimalPosition) + buffer.getSample(0, nextIdx) * decimalPosition;
-            *rightOut = buffer.getSample(1, fifoIdx) * (1 - decimalPosition) + buffer.getSample(1, nextIdx) * decimalPosition;
+            const auto complementaryPosition = (1 - decimalPosition);
+            leftChannel[sampleIdx] = buffer.getSample(0, fifoIdx) * complementaryPosition + buffer.getSample(0, nextIdx) * decimalPosition;
+            rightChannel[sampleIdx] = buffer.getSample(1, fifoIdx) * complementaryPosition + buffer.getSample(1, nextIdx) * decimalPosition;
             
             decimalPosition += speedRatio * pitchRatio;
-            const int sampleStep = static_cast<int>(std::floor(decimalPosition));
+            const auto sampleStep = static_cast<int>(decimalPosition);
 
             fifoIdx += sampleStep;
             decimalPosition -= sampleStep;
@@ -430,8 +434,8 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
         float totalGain { baseGain };
         float& left { *outputBuffer.getWritePointer(0, sampleIdx) };
         float& right { *outputBuffer.getWritePointer(1, sampleIdx) };
-        applyPanToSample(panEnvelope.getNextValue(), left, right);
-        applyWidthAndPositionToSample(widthEnvelope.getNextValue(), positionEnvelope.getNextValue(), left, right);
+        // applyPanToSample(panEnvelope.getNextValue(), left, right);
+        // applyWidthAndPositionToSample(widthEnvelope.getNextValue(), positionEnvelope.getNextValue(), left, right);
 
         // Apply a total gain
         totalGain *= amplitudeEGEnvelope.getNextValue();
