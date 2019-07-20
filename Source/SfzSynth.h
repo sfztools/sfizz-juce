@@ -41,8 +41,13 @@ public:
     void clear();
 
     void prepareToPlay(double sampleRate, int samplesPerBlock);
-    void updateMidiState(const MidiMessage& msg, int timestamp);
-    void renderNextBlock(AudioBuffer<float>& outputAudio, const MidiBuffer& inputMidi);
+    void registerNoteOn(int channel, int noteNumber, uint8_t velocity, int timestamp);
+    void registerNoteOff(int channel, int noteNumber, uint8_t velocity, int timestamp);
+    void registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp);
+    void registerPitchWheel(int channel, int pitch, int timestamp);
+    void registerAftertouch(int channel, uint8_t aftertouch, int timestamp);
+    void registerTempo(float secondsPerQuarter, int timestamp);
+    void renderNextBlock(AudioBuffer<float>& outputAudio, int startSample, int numSamples);
     
     int getNumRegions() const { return static_cast<int>(regions.size()); }
     int getNumGroups() const { return numGroups; }

@@ -45,9 +45,26 @@ void SfzVoice::release(int timestamp, bool useFastRelease)
     }
 }
 
-void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int sampleDelay)
+void SfzVoice::startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNumber, uint8_t velocity, int sampleDelay)
 {
-    // The voice should be idling!
+    commonStartVoice(newRegion, sampleDelay);
+    triggeringNoteNumber = noteNumber;
+    triggeringChannel = channel;
+    pitchRatio = region->getBasePitchVariation(noteNumber, velocity);
+    baseGain *= region->getNoteGain(noteNumber, velocity);
+    amplitudeEGEnvelope.prepare(region->amplitudeEG, ccState, velocity, sampleDelay);
+}
+
+void SfzVoice::startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue, int sampleDelay)
+{
+    commonStartVoice(newRegion, sampleDelay);
+    triggeringCCNumber = ccNumber;
+    triggeringChannel = channel;
+}
+
+void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
+{
+        // The voice should be idling!
     jassert(state == SfzVoiceState::idle);
     // Positive delay
     jassert(sampleDelay >= 0);
@@ -59,19 +76,14 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
     };
 
     region = &newRegion;
-    triggeringMessage = msg;
     noteIsOff = false;
     state = SfzVoiceState::playing;
 
     // Compute the resampling ratio for this region
     speedRatio = region->sampleRate / this->sampleRate;
-    pitchRatio = region->computeBasePitchVariation(msg);
-    
+
     // Compute the base amplitude gain
-    baseGain = region->computeBaseGain(msg);
-
-    amplitudeEGEnvelope.prepare(region->amplitudeEG, ccState, msg.getVelocity(), sampleDelay);
-
+    baseGain = region->getBaseGain();
     // Initialize the CC envelopes
     auto setupLinearCCEnvelope = [this] (SfzCCEnvelope& envelope, const auto& baseValue, const auto& ccSwitch) {
         if (ccSwitch)
@@ -149,6 +161,57 @@ void SfzVoice::startVoice(SfzRegion& newRegion, const MidiMessage& msg, int samp
 
     // Schedule a callback in the background thread
     fileLoadingPool.addJob(this, false);
+}
+
+void SfzVoice::registerNoteOff(int channel, int noteNumber, uint8_t velocity, int timestamp)
+{
+    if (region == nullptr || !triggeringNoteNumber || !triggeringChannel)
+        return;
+    
+    if (state == SfzVoiceState::idle)
+        return;
+
+    if (channel != *triggeringChannel)
+        return;
+    
+    if (!noteIsOff && noteNumber == *triggeringNoteNumber && region->loopMode != SfzLoopMode::one_shot)
+        noteIsOff = true;
+  
+    if (noteIsOff && ccState[64] < 64)
+        release(timestamp);
+}
+void SfzVoice::registerAftertouch(int channel, uint8_t aftertouch, int timestamp)
+{
+    ignoreUnused(channel, aftertouch, timestamp);
+}
+
+void SfzVoice::registerPitchWheel(int channel, int pitch, int timestamp)
+{
+    ignoreUnused(channel, pitch, timestamp);
+}
+
+void SfzVoice::registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp)
+{
+    if (region == nullptr)
+        return;
+
+    if (triggeringCCNumber && *triggeringCCNumber == ccNumber && !withinRange(region->ccTriggers.at(ccNumber), ccValue))
+        noteIsOff = true;
+
+    if (noteIsOff && ccState[64] < 64)
+        release(timestamp);
+
+    if (region->amplitudeCC && region->amplitudeCC->first == ccNumber)
+        amplitudeEnvelope.addEvent(timestamp , ccValue);
+
+    if (region->panCC && region->panCC->first == ccNumber)
+        panEnvelope.addEvent(timestamp, ccValue);
+
+    if (region->positionCC && region->positionCC->first == ccNumber)
+        positionEnvelope.addEvent(timestamp, ccValue);
+
+    if (region->widthCC && region->widthCC->first == ccNumber)
+        widthEnvelope.addEvent(timestamp, ccValue);
 }
 
 ThreadPoolJob::JobStatus SfzVoice::runJob()
@@ -266,53 +329,6 @@ void SfzVoice::prepareToPlay(double sampleRate, int samplesPerBlock)
     reset();
 }
 
-void SfzVoice::processMidi(MidiMessage& msg, int timestamp)
-{
-    if (region == nullptr || !triggeringMessage)
-        return;
-
-    if (state == SfzVoiceState::idle)
-        return;
-    
-    if (msg.isNoteOff() 
-        && !noteIsOff
-        && msg.getNoteNumber() == triggeringMessage->getNoteNumber()
-        && region->loopMode != SfzLoopMode::one_shot)
-    {
-        noteIsOff = true;
-    }
-
-    if (msg.isController())
-    {
-        auto ccIdx = msg.getControllerNumber();
-        auto ccValue = msg.getControllerValue();
-
-        if (triggeringMessage->isController()
-            && triggeringMessage->getControllerNumber() == ccIdx
-            && !withinRange(region->ccTriggers.at(ccIdx), ccValue))
-        {
-            noteIsOff = true;
-        }
-
-        if (region->amplitudeCC && region->amplitudeCC->first == ccIdx)
-            amplitudeEnvelope.addEvent(timestamp , ccValue);
-
-        if (region->panCC && region->panCC->first == ccIdx)
-            panEnvelope.addEvent(timestamp, ccValue);
-
-        if (region->positionCC && region->positionCC->first == ccIdx)
-            positionEnvelope.addEvent(timestamp, ccValue);
-
-        if (region->widthCC && region->widthCC->first == ccIdx)
-            widthEnvelope.addEvent(timestamp, ccValue);
-    }
-
-    if (noteIsOff && ccState[64] < 64)
-    {
-        release(timestamp);
-    }
-}
-
 bool SfzVoice::checkOffGroup(uint32_t group, int timestamp)
 {
     if (region != nullptr && region->offBy && *region->offBy == group)
@@ -393,29 +409,6 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
     }
 }
 
-void SfzVoice::getNextSample(float& left, float& right)
-{
-    if (region->isGenerator())
-    {
-        if (region->sample == "*silence")
-        {
-            left = 0;
-            right = 0;
-        }
-        else if (region->sample == "*sine")
-        {
-            const float phase = static_cast<float>(localTime / sampleRate) * baseSinePitch * static_cast<float>(pitchRatio);
-            left = std::sin(phase);
-            right = left;
-        }
-    }
-    else
-    {
-
-    }
-    localTime++;
-}
-
 void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
 {
     outputBuffer.clear(startSample, numSamples);
@@ -462,23 +455,28 @@ void SfzVoice::reset()
 {
     state = SfzVoiceState::idle;
     region = nullptr;
-    triggeringMessage.reset();
+    triggeringNoteNumber.reset();
+    triggeringCCNumber.reset();
+    triggeringChannel.reset();
     reader.reset();
     preloadedData.reset();
     initialDelay = 0;
     localTime = 0;
-    resetResamplers();
     buffer.clear();
     fifo.reset();
 }
 
-std::optional<MidiMessage> SfzVoice::getTriggeringMessage() const
+std::optional<int> SfzVoice::getTriggeringNoteNumber() const
 {
-    return triggeringMessage;
+    return triggeringNoteNumber;
 }
 
-void SfzVoice::resetResamplers()
+std::optional<int> SfzVoice::getTriggeringCCNumber() const
 {
-    leftResampler.reset();
-    rightResampler.reset();
+    return triggeringCCNumber;
+}
+
+std::optional<int> SfzVoice::getTriggeringChannel() const
+{
+    return triggeringChannel;
 }

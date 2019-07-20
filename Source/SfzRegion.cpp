@@ -283,45 +283,34 @@ String SfzRegion::stringDescription() const noexcept
     return returnedString;
 }
 
-bool SfzRegion::checkMidiConditions(const MidiMessage &msg) const noexcept
+bool SfzRegion::registerNoteOn(int channel, int noteNumber, uint8_t velocity, float randValue)
 {
-    auto velocity = msg.getVelocity();
-    bool keyOk = withinRange(keyRange, msg.getNoteNumber());
-    bool velOk = withinRange(velocityRange, velocity) || msg.isNoteOff();
-    bool chanOk = withinRange(channelRange, msg.getChannel());
-    return keyOk && velOk && chanOk;
-}
+    // You have to call prepare before sending notes to the region
+    jassert(prepared);
 
-// TODO: rename this function
-void SfzRegion::updateSwitches(const MidiMessage &msg) noexcept
-{
-    if (msg.isNoteOn() && withinRange(keyswitchRange, msg.getNoteNumber()))
+    const bool chanOk = withinRange(channelRange, channel);
+    if (!chanOk)
+        return false;
+
+    if (withinRange(keyswitchRange, noteNumber))
     {
         if (keyswitch)
         {
-            if (*keyswitch == msg.getNoteNumber())
+            if (*keyswitch == noteNumber)
                 keySwitched = true;
             else
                 keySwitched = false;
         }
 
-        if (keyswitchDown && *keyswitchDown == msg.getNoteNumber())
+        if (keyswitchDown && *keyswitchDown == noteNumber)
             keySwitched = true;
 
-        if (keyswitchUp && *keyswitchUp == msg.getNoteNumber())
+        if (keyswitchUp && *keyswitchUp == noteNumber)
             keySwitched = false;
     }
 
-    if (msg.isNoteOff() && withinRange(keyswitchRange, msg.getNoteNumber()))
-    {
-        if (keyswitchDown && *keyswitchDown == msg.getNoteNumber())
-            keySwitched = false;
-
-        if (keyswitchUp && *keyswitchUp == msg.getNoteNumber())
-            keySwitched = true;
-    }
-
-    if (msg.isNoteOn() && withinRange(keyRange, msg.getNoteNumber()))
+    const bool keyOk = withinRange(keyRange, noteNumber);
+    if (keyOk)
     {
         // Update the number of notes playing for the region
         activeNotesInRange++;
@@ -335,101 +324,106 @@ void SfzRegion::updateSwitches(const MidiMessage &msg) noexcept
 
         // Velocity memory for release_key and for sw_vel=previous
         if (trigger == SfzTrigger::release_key || velocityOverride == SfzVelocityOverride::previous)
-            lastNoteVelocities[msg.getNoteNumber()] = msg.getVelocity();
+            lastNoteVelocities[noteNumber] = velocity;
 
         if (previousNote)
         {
-            if ( *previousNote == msg.getNoteNumber())
+            if ( *previousNote == noteNumber)
                 previousKeySwitched = true;
             else
                 previousKeySwitched = false;
         }
     }
 
-    if (msg.isNoteOff() && withinRange(keyRange, msg.getNoteNumber()))
-    {
-        // Update the number of notes playing for the region
-        activeNotesInRange--;
-    }
-
-    if (msg.isController())
-    {
-        if (withinRange(ccConditions.getWithDefault(msg.getControllerNumber()), msg.getControllerValue()))
-            ccSwitched[msg.getControllerNumber()] = true;
-        else
-            ccSwitched[msg.getControllerNumber()] = false;
-    }
-
-    if (msg.isPitchWheel())
-    {
-        if (withinRange(bendRange, msg.getPitchWheelValue()))
-            pitchSwitched = true;
-        else
-            pitchSwitched = false;
-    }
-
-    if (msg.isChannelPressure())
-    {
-        if (withinRange(aftertouchRange, msg.getChannelPressureValue()))
-            aftertouchSwitched = true;
-        else
-            aftertouchSwitched = false;
-    }
-
-    if (msg.isTempoMetaEvent())
-    {
-        const float bpm = 60.0f / (float)msg.getTempoSecondsPerQuarterNote();
-        if (withinRange(bpmRange, bpm))
-            bpmSwitched = true;
-        else
-            bpmSwitched = false;
-    }
-}
-
-bool SfzRegion::appliesTo(const MidiMessage &msg, float randValue) const noexcept
-{
-    // You have to call prepare before trying to activate the region
-    jassert(prepared);
-
-    if (!prepared)
-        return false;
-    
     if (!isSwitchedOn())
         return false;
 
-    if (!ccTriggers.empty())
+    if (previousNote && !(previousKeySwitched && noteNumber != *previousNote))
+        return false;
+
+    const bool velOk = withinRange(velocityRange, velocity);
+    const bool randOk = withinRange(randRange, randValue);
+    const bool firstLegatoNote = (trigger == SfzTrigger::first && activeNotesInRange == 0);
+    const bool attackTrigger = (trigger == SfzTrigger::attack);
+    const bool notFirstLegatoNote = (trigger == SfzTrigger::legato && activeNotesInRange > 0);
+    return keyOk && velOk && chanOk && randOk && (attackTrigger || firstLegatoNote || notFirstLegatoNote);
+}
+
+bool SfzRegion::registerNoteOff(int channel, int noteNumber, uint8_t velocity, float randValue)
+{
+    // You have to call prepare before sending notes to the region
+    jassert(prepared);
+
+    const bool chanOk = withinRange(channelRange, channel);
+    if (!chanOk)
+        return false;
+
+    if (withinRange(keyswitchRange, noteNumber))
     {
-        // When we have CC triggers there's no fallback on key ranges
-        if (!msg.isController())
-            return false;
+        if (keyswitchDown && *keyswitchDown == noteNumber)
+            keySwitched = false;
 
-        const auto ccNumber = msg.getControllerNumber();
-        const auto ccValue = static_cast<uint8_t>(msg.getControllerValue());
+        if (keyswitchUp && *keyswitchUp == noteNumber)
+            keySwitched = true;
+    }
 
-        if (ccTriggers.contains(ccNumber) && withinRange(ccTriggers.at(ccNumber), ccValue))
-            return true;
-        else
-            return false;
-    }    
+    const bool keyOk = withinRange(keyRange, noteNumber);
+    // Update the number of notes playing for the region
+    if (keyOk)
+        activeNotesInRange--;
 
-    if (checkMidiConditions(msg) && withinRange(randRange, randValue))
-    {
-        if ( previousNote && !(msg.isNoteOn() && previousKeySwitched && msg.getNoteNumber() != *previousNote) )
-            return false;
+    if (!isSwitchedOn())
+        return false;
+    
+    const bool randOk = withinRange(randRange, randValue);
+    const bool releaseTrigger = (trigger == SfzTrigger::release || trigger == SfzTrigger::release_key);
+    return keyOk && chanOk && randOk && releaseTrigger;
+}
 
-        if (msg.isNoteOn() && trigger == SfzTrigger::attack)
-            return true;
+bool SfzRegion::registerCC(int channel, int ccNumber, uint8_t ccValue)
+{
+    // You have to prepare the region before calling this function
+    jassert(prepared);
+    if (withinRange(ccConditions.getWithDefault(ccNumber), ccValue))
+        ccSwitched[ccNumber] = true;
+    else
+        ccSwitched[ccNumber] = false;
 
-        if (msg.isNoteOff() && (trigger == SfzTrigger::release || trigger == SfzTrigger::release_key))
-            return true;
+    if (ccTriggers.contains(ccNumber) && withinRange(ccTriggers.at(ccNumber), ccValue))
+        return true;
+    else
+        return false;
+}
 
-        if (msg.isNoteOn() && trigger == SfzTrigger::first && activeNotesInRange == 0)
-            return true;
-            
-        if (msg.isNoteOn() && trigger == SfzTrigger::legato && activeNotesInRange > 0)
-            return true;
-    }    
-    return false;
+void SfzRegion::registerPitchWheel(int channel, int pitch)
+{
+    // You have to prepare the region before calling this function
+    jassert(prepared);
+    if (withinRange(bendRange, pitch))
+        pitchSwitched = true;
+    else
+        pitchSwitched = false;
+}
+
+void SfzRegion::registerAftertouch(int channel, uint8_t aftertouch)
+{
+    // You have to prepare the region before calling this function
+    jassert(prepared);
+    if (withinRange(aftertouchRange, aftertouch))
+        aftertouchSwitched = true;
+    else
+        aftertouchSwitched = false;
+}
+
+void SfzRegion::registerTempo(float secondsPerQuarter)
+{
+    // You have to prepare the region before calling this function
+    jassert(prepared);
+    const float bpm = 60.0f / secondsPerQuarter;
+    if (withinRange(bpmRange, bpm))
+        bpmSwitched = true;
+    else
+        bpmSwitched = false;
 }
 
 bool SfzRegion::prepare()
@@ -535,7 +529,7 @@ bool SfzRegion::isStereo() const noexcept
     return numChannels == 2;
 }
 
-float SfzRegion::velocityGaindB(int8 velocity) const noexcept
+float SfzRegion::velocityGain(uint8_t velocity) const noexcept
 {
     float gaindB { 0.0 };
     if (velocityPoints.size() > 0)
@@ -556,7 +550,7 @@ float SfzRegion::velocityGaindB(int8 velocity) const noexcept
             gaindB =  40 * std::log(1-floatVelocity) / std::log(10.0f);
     }
     gaindB *= std::abs(ampVeltrack) / SfzDefault::ampVeltrackRange.getEnd();
-    return gaindB;
+    return Decibels::decibelsToGain(gaindB);
 }
 
 bool SfzRegion::isSwitchedOn() const noexcept

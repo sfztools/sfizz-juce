@@ -20,17 +20,17 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "hicc4", "59" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 57));
+        region.registerCC(1, 4, 57);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 56));
+        region.registerCC(1, 4, 56);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 59));
+        region.registerCC(1, 4, 59);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 43));
+        region.registerCC(1, 4, 43);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 65));
+        region.registerCC(1, 4, 65);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 6, 57));
+        region.registerCC(1, 6, 57);
         REQUIRE( !region.isSwitchedOn() );
     }
 
@@ -42,23 +42,23 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "hicc54", "27" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 57));
+        region.registerCC(1, 4, 57);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 54, 19));
+        region.registerCC(1, 54, 19);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 54, 18));
+        region.registerCC(1, 54, 18);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 54, 27));
+        region.registerCC(1, 54, 27);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 56));
+        region.registerCC(1, 4, 56);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 59));
+        region.registerCC(1, 4, 59);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 54, 2));
+        region.registerCC(1, 54, 2);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 54, 26));
+        region.registerCC(1, 54, 26);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::controllerEvent(1, 4, 65));
+        region.registerCC(1, 4, 65);
         REQUIRE( !region.isSwitchedOn() );
     }
 
@@ -68,11 +68,11 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "hibend", "243" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::pitchWheel(1, 56));
+        region.registerPitchWheel(1, 56);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::pitchWheel(1, 243));
+        region.registerPitchWheel(1, 243);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::pitchWheel(1, 245));
+        region.registerPitchWheel(1, 245);
         REQUIRE( !region.isSwitchedOn() );
     }
 
@@ -82,11 +82,11 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "hichanaft", "68" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::channelPressureChange(1, 56));
+        region.registerAftertouch(1, 56);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::channelPressureChange(1, 68));
+        region.registerAftertouch(1, 68);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::channelPressureChange(1, 98));
+        region.registerAftertouch(1, 98);
         REQUIRE( !region.isSwitchedOn() );
     }
 
@@ -96,11 +96,11 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "hibpm", "68" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::tempoMetaEvent(1070000));
+        region.registerTempo(1070000);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::tempoMetaEvent(882354));
+        region.registerTempo(882354);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::tempoMetaEvent(132314));
+        region.registerTempo(132314);
         REQUIRE( !region.isSwitchedOn() );
     }
 
@@ -110,13 +110,13 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "sw_last", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40, 0.5f));
+        region.registerNoteOff(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        region.registerNoteOn(1, 41, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        region.registerNoteOff(1, 41, 0, 0.5f);
     }
 
     SECTION("Keyswitches: sw_last with non-default keyswitch range")
@@ -126,20 +126,20 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "sw_last", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 60, 0.5f));
+        region.registerNoteOn(1, 60, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 60));
+        region.registerNoteOff(1, 60, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 60, 0.5f));
+        region.registerNoteOn(1, 60, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 60));
-        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        region.registerNoteOff(1, 60, 0, 0.5f);
+        region.registerNoteOn(1, 41, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        region.registerNoteOff(1, 41, 0, 0.5f);
     }
 
     SECTION("Keyswitches: sw_down with non-default keyswitch range")
@@ -149,20 +149,20 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "sw_down", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 60, 0.5f));
+        region.registerNoteOn(1, 60, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 60));
+        region.registerNoteOff(1, 60, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 60, 0.5f));
+        region.registerNoteOn(1, 60, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 60));
-        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        region.registerNoteOff(1, 60, 0, 0.5f);
+        region.registerNoteOn(1, 41, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        region.registerNoteOff(1, 41, 0, 0.5f);
     }
 
     SECTION("Keyswitches: sw_down with non-default keyswitch range")
@@ -172,16 +172,16 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "sw_up", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        region.registerNoteOn(1, 41, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
-        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        region.registerNoteOff(1, 40, 0, 0.5f);
+        region.registerNoteOff(1, 41, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
     }
 
@@ -190,20 +190,20 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "sw_previous", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        region.registerNoteOn(1, 41, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
-        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        region.registerNoteOff(1, 40, 0, 0.5f);
+        region.registerNoteOff(1, 41, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 41, 0.5f));
+        region.registerNoteOn(1, 41, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 41));
+        region.registerNoteOff(1, 41, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
     }
     
@@ -214,17 +214,17 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "key", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
  
     }
@@ -235,17 +235,17 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "key", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
  
     }
@@ -256,21 +256,21 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "key", "40" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( !region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOn(1, 40, 0.5f));
+        region.registerNoteOn(1, 40, 64, 0.5f);
         REQUIRE( region.isSwitchedOn() );
-        region.updateSwitches(MidiMessage::noteOff(1, 40));
+        region.registerNoteOff(1, 40, 0, 0.5f);
         REQUIRE( region.isSwitchedOn() ); 
     }
 }

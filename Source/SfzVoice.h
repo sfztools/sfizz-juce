@@ -41,21 +41,26 @@ public:
     SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
     ~SfzVoice();
     
-    void startVoice(SfzRegion& newRegion, const MidiMessage& msg, int sampleDelay);
+    void startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNumber, uint8_t velocity, int sampleDelay);
+    void startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue, int sampleDelay);
     void prepareToPlay(double sampleRate, int samplesPerBlock);
     void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
     void processMidi(MidiMessage& msg, int timestamp);
 
+    void registerAftertouch(int channel, uint8_t aftertouch, int timestamp);
+    void registerPitchWheel(int channel, int pitch, int timestamp);
+    void registerNoteOff(int channel, int noteNumber, uint8_t velocity, int timestamp);
+    void registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp);
     bool checkOffGroup(uint32_t group, int timestamp);
-    void reset();
 
+    void reset();
     bool isFree() const { return state == SfzVoiceState::idle; }
     bool isPlaying() const { return state != SfzVoiceState::idle; }
 
-    std::optional<MidiMessage> getTriggeringMessage() const;
-
+    std::optional<int> getTriggeringChannel() const;
+    std::optional<int> getTriggeringNoteNumber() const;
+    std::optional<int> getTriggeringCCNumber() const;
 private:
-    void fillBuffer(AudioBuffer<float>& buffer, int startSample, int numSamples);
     ThreadPool& fileLoadingPool;
     SfzFilePool& filePool;
     const CCValueArray& ccState;
@@ -66,7 +71,9 @@ private:
     AbstractFifo fifo;
 
     // Message and region that activated the note
-    std::optional<MidiMessage> triggeringMessage;
+    std::optional<int> triggeringChannel;
+    std::optional<int> triggeringNoteNumber;
+    std::optional<int> triggeringCCNumber;
     SfzRegion* region { nullptr };
     std::unique_ptr<AudioFormatReader> reader { nullptr };
     std::shared_ptr<AudioBuffer<float>> preloadedData { nullptr };
@@ -81,9 +88,6 @@ private:
     // Basic ratios for resampling
     double speedRatio { 1.0 };
     double pitchRatio { 1.0 };
-    float currentPhase { 0.0f };
-    float baseSinePitch { MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(SfzDefault::pitchKeycenter) };
-
     // Envelopes and states for the voice
     SfzVoiceState state { SfzVoiceState::idle };
     float baseGain { 1.0f };
@@ -98,20 +102,14 @@ private:
     int initialDelay{0};
     int64 sourcePosition { 0 };
     uint32_t loopCount { 1 };
-    
     uint32_t localTime { 0 };
 
-    // Resamplers ; these need to be in shared pointers because we store the voices in a vector and they're not copy constructible
-    // Not very logical since their ownership is not shared, but anyway...
-    // TODO : No need for shared pointers anymore
-    LagrangeInterpolator leftResampler;
-    LagrangeInterpolator rightResampler;
     double decimalPosition { 0.0 };
 
-    void release(int timestamp, bool useFastRelease = false);
-    void resetResamplers();
     JobStatus runJob() override;
     void clearEnvelopes() noexcept;
-    void getNextSample(float& left, float& right);
+    void release(int timestamp, bool useFastRelease = false);
+    void fillBuffer(AudioBuffer<float>& buffer, int startSample, int numSamples);
+    void commonStartVoice(SfzRegion& newRegion, int sampleDelay);
     JUCE_LEAK_DETECTOR(SfzVoice)
 };

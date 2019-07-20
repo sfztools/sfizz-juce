@@ -327,13 +327,13 @@ bool SfzSynth::loadSfzFile(const std::filesystem::path &file)
 		
 		for (int ccIdx = 1; ccIdx < 128; ccIdx++)
 		{
-			region.updateSwitches(MidiMessage::controllerEvent((int)region.channelRange.getStart(), ccIdx, ccState[ccIdx]));
+			region.registerCC(region.channelRange.getStart(), ccIdx, ccState[ccIdx]);
 		}
 
 		if (defaultSwitch)
 		{
-			region.updateSwitches(MidiMessage::noteOn(1, *defaultSwitch, 1.0f));
-			region.updateSwitches(MidiMessage::noteOff(1, *defaultSwitch));
+			region.registerNoteOn(region.channelRange.getStart(), *defaultSwitch, 127, 1.0f);
+			region.registerNoteOff(region.channelRange.getStart(), *defaultSwitch, 0, 1.0f);
 		}
 	}
 	return true;
@@ -402,66 +402,96 @@ void SfzSynth::prepareToPlay(double sampleRate, int samplesPerBlock)
 	tempBuffer = AudioBuffer<float>(config::numChannels, samplesPerBlock);
 }
 
-void SfzSynth::updateMidiState(const MidiMessage& msg, int timestamp)
+void SfzSynth::registerNoteOn(int channel, int noteNumber, uint8_t velocity, int timestamp)
 {
-	if (msg.isController())
-		ccState[msg.getControllerNumber()] = msg.getControllerValue();
+	const auto randValue = Random::getSystemRandom().nextFloat();
+
+	for (auto& region: regions)
+	{
+		if (region.registerNoteOn(channel, noteNumber, velocity, randValue))
+		{
+			for (auto& voice: voices)
+			{
+				const auto triggeringNoteNumber = voice.getTriggeringNoteNumber();
+				if (voice.checkOffGroup(region.group, timestamp) && triggeringNoteNumber)
+					registerNoteOff(channel, noteNumber, 0, timestamp);
+			}
+
+			auto freeVoice = std::find_if(voices.begin(), voices.end(), [](auto& voice) { return voice.isFree(); });
+			if (freeVoice != end(voices))
+				freeVoice->startVoiceWithNote(region, channel, noteNumber, velocity, timestamp);
+		}		
+	}
 }
 
-void SfzSynth::renderNextBlock(AudioBuffer<float>& outputAudio, const MidiBuffer& inputMidi)
+void SfzSynth::registerNoteOff(int channel, int noteNumber, uint8_t velocity, int timestamp)
 {
-	MidiBuffer::Iterator it { inputMidi };
-	MidiMessage msg;
-	int timestamp;
-	const auto numSamples = outputAudio.getNumSamples();
-	while (it.getNextEvent(msg, timestamp))
-	{
-		// DBG("[Timestamp " << timestamp << " ] Midi event: " << msg.getDescription()); 
-		if (msg.isController())
-			ccState[msg.getControllerNumber()] = msg.getControllerValue();
-
-		for (auto& voice: voices)
-			voice.processMidi(msg, timestamp);
-
-		for (auto& region: regions)
-			region.updateSwitches(msg);
-
-		checkRegionsForActivation(msg, timestamp);        
-	}
+	const auto randValue = Random::getSystemRandom().nextFloat();
 	
+	for (auto& region: regions)
+	{
+		if (region.registerNoteOff(channel, noteNumber, velocity, randValue))
+		{
+			auto freeVoice = std::find_if(voices.begin(), voices.end(), [](auto& voice) { return voice.isFree(); });
+			if (freeVoice != end(voices))
+				freeVoice->startVoiceWithNote(region, channel, noteNumber, velocity, timestamp);
+		}
+		
+	}
+
+	for (auto& voice: voices)
+		voice.registerNoteOff(channel, noteNumber, velocity, timestamp);
+}
+
+void SfzSynth::registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp)
+{
+	ccState[ccNumber] = ccValue;
+
+	for (auto& region: regions)
+	{
+		if (region.registerCC(channel, ccNumber, ccValue))
+		{
+			auto freeVoice = std::find_if(voices.begin(), voices.end(), [](auto& voice) { return voice.isFree(); });
+			if (freeVoice != end(voices))
+				freeVoice->startVoiceWithCC(region, channel, ccNumber, ccValue, timestamp);
+		}		
+	}
+
+	for (auto& voice: voices)
+		voice.registerCC(channel, ccNumber, ccValue, timestamp);
+}
+
+void SfzSynth::renderNextBlock(AudioBuffer<float>& outputAudio, int startSample, int numSamples)
+{
 	// Render all the voices
 	for (auto& voice: voices)
 	{
 		voice.renderNextBlock(tempBuffer, 0, numSamples);
 		for (int channelIdx = 0; channelIdx < outputAudio.getNumChannels(); ++channelIdx)
-			outputAudio.addFrom(channelIdx, 0, tempBuffer, channelIdx, 0, numSamples);
+			outputAudio.addFrom(channelIdx, startSample, tempBuffer, channelIdx, 0, numSamples);
 	}
 }
 
-void SfzSynth::checkRegionsForActivation(const MidiMessage& msg, int timestamp)
+void SfzSynth::registerPitchWheel(int channel, int pitch, int timestamp)
 {
-	const auto randValue = Random::getSystemRandom().nextFloat();
 	for (auto& region: regions)
-	{
-		if (region.appliesTo(msg, randValue))
-		{
-			auto freeVoice = std::find_if(voices.begin(), voices.end(), [](auto& voice) { return voice.isFree(); });
-			if (freeVoice != end(voices))
-			{
-				DBG("Found an active region on note " << msg.getNoteNumber() << " with sample " << region.sample);
-				freeVoice->startVoice(region, msg, timestamp);
-				for (auto& voice: voices)
-				{
-					const auto triggeringMessage = voice.getTriggeringMessage();
-					if (triggeringMessage 
-						&& &voice != &*freeVoice 
-						&& voice.checkOffGroup(region.group, timestamp) 
-						&& !region.isRelease())
-					{
-						checkRegionsForActivation(MidiMessage::noteOff(triggeringMessage->getChannel(), triggeringMessage->getNoteNumber()), timestamp);
-					}
-				}
-			}
-		}
-	}
+		region.registerPitchWheel(channel, pitch);
+	
+	for (auto& voice: voices)
+		voice.registerPitchWheel(channel, pitch, timestamp);
+}
+
+void SfzSynth::registerAftertouch(int channel, uint8_t aftertouch, int timestamp)
+{
+	for (auto& region: regions)
+		region.registerAftertouch(channel, aftertouch);
+
+	for (auto& voice: voices)
+		voice.registerAftertouch(channel, aftertouch, timestamp);
+}
+
+void SfzSynth::registerTempo(float secondsPerQuarter, int timestamp)
+{
+	for (auto& region: regions)
+		region.registerTempo(secondsPerQuarter);
 }

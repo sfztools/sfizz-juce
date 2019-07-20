@@ -153,7 +153,25 @@ void SfzpluginAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, numSamples);
 
-    sfzSynth.renderNextBlock(buffer, midiMessages);
+    MidiBuffer::Iterator it { midiMessages };
+	MidiMessage msg;
+	int timestamp;
+	while (it.getNextEvent(msg, timestamp))
+	{
+		// DBG("[Timestamp " << timestamp << " ] Midi event: " << msg.getDescription()); 
+		if (msg.isController())
+			sfzSynth.registerCC(msg.getChannel(), msg.getControllerNumber(), msg.getControllerValue(), timestamp);
+        if (msg.isNoteOn())
+			sfzSynth.registerNoteOn(msg.getChannel(), msg.getNoteNumber(), msg.getVelocity(), timestamp);
+        if (msg.isNoteOff())
+			sfzSynth.registerNoteOff(msg.getChannel(), msg.getNoteNumber(), msg.getVelocity(), timestamp);
+        if (msg.isChannelPressure())
+			sfzSynth.registerAftertouch(msg.getChannel(), msg.getAfterTouchValue(), timestamp); 
+        if (msg.isPitchWheel())
+			sfzSynth.registerPitchWheel(msg.getChannel(), msg.getPitchWheelValue(), timestamp);        
+	}
+
+    sfzSynth.renderNextBlock(buffer, 0, numSamples);
     
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {

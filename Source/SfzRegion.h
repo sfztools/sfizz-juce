@@ -39,81 +39,90 @@ struct SfzRegion
     SfzRegion(const File& root, SfzFilePool& filePool);
     void parseOpcode(const SfzOpcode& opcode);
     String stringDescription() const noexcept;
-    bool checkMidiConditions(const MidiMessage& msg) const noexcept;
-    void updateSwitches(const MidiMessage& msg) noexcept;
-    bool appliesTo(const MidiMessage& msg, float randValue) const noexcept;
     bool prepare();
     bool isStereo() const noexcept;
-    float velocityGaindB(int8 velocity) const noexcept;
-    double computeBasePitchVariation(const MidiMessage& msg) const noexcept
+    float velocityGain(uint8_t velocity) const noexcept;
+    double getBasePitchVariation(int noteNumber, uint8_t velocity) const noexcept
     {
-        auto pitchVariationInCents = pitchKeytrack * (msg.getNoteNumber() - (int)pitchKeycenter); // note difference with pitch center
+        auto pitchVariationInCents = pitchKeytrack * (noteNumber - (int)pitchKeycenter); // note difference with pitch center
         pitchVariationInCents += tune; // sample tuning
         pitchVariationInCents += config::centPerSemitone * transpose; // sample transpose
-        pitchVariationInCents += static_cast<int>(msg.getFloatVelocity() * pitchVeltrack); // track velocity
+        pitchVariationInCents += velocity / 127 * pitchVeltrack; // track velocity
         if (pitchRandom > 0)
             pitchVariationInCents += Random::getSystemRandom().nextInt((int)pitchRandom * 2) - pitchRandom; // random pitch changes
         return centsFactor(pitchVariationInCents);
     }
-    float computeBaseGain(const MidiMessage& msg) const noexcept
+    float getBaseGain() const noexcept
     {
         float baseGaindB { volume };
         baseGaindB += (2 * Random::getSystemRandom().nextFloat() - 1) * ampRandom;
-        
+        return Decibels::decibelsToGain(baseGaindB);
+    }
+
+    float getNoteGain(int noteNumber, uint8_t velocity) const noexcept
+    {
+        float baseGain { 1.0f };
         if (trigger == SfzTrigger::release_key)
-            baseGaindB += velocityGaindB(lastNoteVelocities[msg.getNoteNumber()]);
+            baseGain *= velocityGain(lastNoteVelocities[noteNumber]);
         else
-            baseGaindB += velocityGaindB(msg.getVelocity());
-        auto baseGain = Decibels::decibelsToGain(baseGaindB);
+            baseGain *= velocityGain(velocity);
 
-        if (msg.getNoteNumber() < crossfadeKeyInRange.getStart())
-            baseGain = 0;
-        else if (msg.getNoteNumber() < crossfadeKeyInRange.getEnd())
+        if (noteNumber < crossfadeKeyInRange.getStart())
+            baseGain = 0.0f;
+        else if (noteNumber < crossfadeKeyInRange.getEnd())
         {
-            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeKeyInRange.getStart()) / crossfadeKeyInRange.getLength();
+            const auto crossfadePosition = (noteNumber - crossfadeKeyInRange.getStart()) / crossfadeKeyInRange.getLength();
             if (crossfadeKeyCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(crossfadePosition);
             if (crossfadeKeyCurve == SfzCrossfadeCurve::gain)
                 baseGain *= crossfadePosition;
         }
 
-        if (msg.getNoteNumber() > crossfadeKeyOutRange.getEnd())
-            baseGain = 0;
-        else if (msg.getNoteNumber() > crossfadeKeyOutRange.getStart())
+        if (noteNumber > crossfadeKeyOutRange.getEnd())
+            baseGain = 0.0f;
+        else if (noteNumber > crossfadeKeyOutRange.getStart())
         {
-            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeKeyOutRange.getStart()) / crossfadeKeyOutRange.getLength();
+            const auto crossfadePosition = (noteNumber - crossfadeKeyOutRange.getStart()) / crossfadeKeyOutRange.getLength();
             if (crossfadeKeyCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(1 - crossfadePosition);
             if (crossfadeKeyCurve == SfzCrossfadeCurve::gain)
                 baseGain *= 1 - crossfadePosition;
         }
 
-        if (msg.isNoteOn() && msg.getVelocity() < crossfadeVelInRange.getStart())
+        if (velocity < crossfadeVelInRange.getStart())
             baseGain = 0;
-        else if (msg.isNoteOn() && msg.getVelocity() < crossfadeVelInRange.getEnd())
+        else if (velocity < crossfadeVelInRange.getEnd())
         {
-            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeVelInRange.getStart()) / crossfadeVelInRange.getLength();
+            const auto crossfadePosition = (noteNumber - crossfadeVelInRange.getStart()) / crossfadeVelInRange.getLength();
             if (crossfadeVelCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(crossfadePosition);
             if (crossfadeVelCurve == SfzCrossfadeCurve::gain)
                 baseGain *= crossfadePosition;
         }
 
-        if (msg.isNoteOn() && msg.getVelocity() > crossfadeVelOutRange.getEnd())
+        if (velocity > crossfadeVelOutRange.getEnd())
             baseGain = 0;
-        else if (msg.isNoteOn() && msg.getVelocity() > crossfadeVelOutRange.getStart())
+        else if (velocity > crossfadeVelOutRange.getStart())
         {
-            const auto crossfadePosition = (msg.getNoteNumber() - crossfadeVelOutRange.getStart()) / crossfadeVelOutRange.getLength();
+            const auto crossfadePosition = (noteNumber - crossfadeVelOutRange.getStart()) / crossfadeVelOutRange.getLength();
             if (crossfadeVelCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(1 - crossfadePosition);
             if (crossfadeVelCurve == SfzCrossfadeCurve::gain)
                 baseGain *= 1 - crossfadePosition;
         }
+
         return baseGain;
     }
     bool isRelease() const noexcept { return trigger == SfzTrigger::release || trigger == SfzTrigger::release_key; }
     bool isSwitchedOn() const noexcept;
     bool isGenerator() const noexcept { return sample.startsWithChar('*'); }
+
+    bool registerNoteOn(int channel, int noteNumber, uint8_t velocity, float randValue);
+    bool registerNoteOff(int channel, int noteNumber, uint8_t velocity, float randValue);
+    bool registerCC(int channel, int ccNumber, uint8_t ccValue);
+    void registerPitchWheel(int channel, int pitch);
+    void registerAftertouch(int channel, uint8_t aftertouch);
+    void registerTempo(float secondsPerQuarter);
 
     // Sound source: sample playback
     String sample {}; // Sample
