@@ -367,7 +367,7 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
             }
             else if (fifoIdx > end1)
             {
-                fifoIdx = start2 + fifoIdx - end1;
+                fifoIdx = start2 + fifoIdx - end1 - 1;
                 nextIdx = fifoIdx + 1;
             }
             else
