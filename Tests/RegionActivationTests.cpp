@@ -96,11 +96,11 @@ TEST_CASE("Region activation", "Region tests")
         region.parseOpcode({ "hibpm", "68" });
         REQUIRE( region.prepare() );
         REQUIRE( !region.isSwitchedOn() );
-        region.registerTempo(1070000);
+        region.registerTempo(0.90f);
         REQUIRE( region.isSwitchedOn() );
-        region.registerTempo(882354);
+        region.registerTempo(1.01f);
         REQUIRE( region.isSwitchedOn() );
-        region.registerTempo(132314);
+        region.registerTempo(1.1f);
         REQUIRE( !region.isSwitchedOn() );
     }
 

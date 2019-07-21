@@ -101,7 +101,6 @@ TEST_CASE("Basic triggers", "Region triggers")
         region.parseOpcode({ "on_locc47", "64" });
         region.parseOpcode({ "on_hicc47", "68" });
         region.prepare();
-        REQUIRE( !region.registerNoteOn(1, 40, 64, 0.40f) );
         REQUIRE( !region.registerCC(1, 47, 63) );
         REQUIRE( region.registerCC(1, 47, 64) );
         REQUIRE( region.registerCC(1, 47, 65) );
