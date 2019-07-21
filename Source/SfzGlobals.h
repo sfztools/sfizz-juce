@@ -32,7 +32,7 @@ using CCNamePair = std::pair<uint8_t, String>;
 
 namespace config
 {
-    inline constexpr int bufferSize { 8192 };
+    inline constexpr int bufferSize { 512 };
     inline constexpr double defaultSampleRate { 48000 };
     inline constexpr int defaultSamplesPerBlock { 1024 };
     inline constexpr int preloadSize { bufferSize };
@@ -76,7 +76,7 @@ inline unsigned int hash(std::string_view s, unsigned int h = Fnv1aBasis)
 }
 
 template<class T>
-inline constexpr double centsFactor(T cents, T centsPerOctave = 1200) { return std::pow(2, static_cast<double>(cents) / centsPerOctave); }
+inline constexpr float centsFactor(T cents, T centsPerOctave = 1200) { return std::pow(2.0f, static_cast<float>(cents) / centsPerOctave); }
 
 template<class T>
 inline constexpr float normalizeCC(T ccValue)
