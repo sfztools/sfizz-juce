@@ -50,6 +50,7 @@ set(TEST_SOURCES
     Source/SfzVoice.cpp
     Tests/TrimViewTests.cpp
     Tests/CCEnvelopeTest.cpp
+    Tests/BlockEnvelopeTest.cpp
     Tests/OpcodeTests.cpp
     Tests/RegexTests.cpp
     Tests/FileTests.cpp
