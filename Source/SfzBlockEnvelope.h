@@ -1,4 +1,5 @@
 #pragma once
+#include "SfzGlobals.h"
 #include <vector>
 #include <algorithm>
 #include <functional>
@@ -8,7 +9,7 @@ template<class OutputType = float, class InputType = uint8_t>
 class SfzBlockEnvelope
 {
 public:
-    SfzBlockEnvelope(int maximum, OutputType initialValue = static_cast<OutputType>(0.0))
+    SfzBlockEnvelope(int maximum = config::defaultSamplesPerBlock, OutputType initialValue = static_cast<OutputType>(0.0))
     : currentValue(initialValue)
     {
         reserve(maximum);
@@ -20,7 +21,7 @@ public:
         maximumEvents = maximum;
     }
 
-    void addEvent(InputType value, int timestamp)
+    void addEvent(int timestamp, InputType value)
     {
         if (events.size() < maximumEvents)
         {
@@ -85,10 +86,17 @@ public:
     {
         events.clear();
     }
+
     void setFunction(std::function<OutputType(InputType)> function)
     {
         transform = function;
     }
+
+    void setDefaultValue(InputType inputValue)
+    {
+        currentValue = transform(inputValue);
+    }
+    
 private:
     struct Event
     {

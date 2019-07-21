@@ -29,7 +29,7 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         constexpr int numElements { 8 };
         SfzBlockEnvelope<float> envelope { numElements, 0.0f };
         std::array<float, numElements> output;
-        envelope.addEvent(1, 2);
+        envelope.addEvent(2, 1);
         envelope.getEnvelope(output.data(), numElements);
         std::array<float, numElements> expected { 0.0f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
         REQUIRE( output == expected );
@@ -40,8 +40,8 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         constexpr int numElements { 8 };
         SfzBlockEnvelope<float> envelope { numElements, 0.0f };
         std::array<float, numElements> output;
-        envelope.addEvent(1, 2);
-        envelope.addEvent(2, 4);
+        envelope.addEvent(2, 1);
+        envelope.addEvent(4, 2);
         envelope.getEnvelope(output.data(), numElements);
         std::array<float, numElements> expected { 0.0f, 0.5f, 1.0f, 1.5f, 2.0f, 2.0f, 2.0f, 2.0f };
         REQUIRE( output == expected );
@@ -52,7 +52,7 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         constexpr int numElements { 4 };
         SfzBlockEnvelope<float> envelope { numElements, 0.0f };
         std::array<float, numElements> output;
-        envelope.addEvent(1, 2);
+        envelope.addEvent(2, 1);
         envelope.getEnvelope(output.data(), numElements);
         std::array<float, numElements> expected { 0.0f, 0.5f, 1.0f, 1.0f };
         REQUIRE( output == expected );
@@ -67,7 +67,7 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         SfzBlockEnvelope<float> envelope { numElements, 0.0f };
         std::array<float, numElements> output;
         envelope.addEvent(2, 2);
-        envelope.addEvent(1, 2);
+        envelope.addEvent(2, 1);
         envelope.getEnvelope(output.data(), numElements);
         std::array<float, numElements> expected { 0.0f, 0.5f, 1.0f, 1.0f };
         REQUIRE( output == expected );
@@ -78,7 +78,7 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         constexpr int numElements { 4 };
         SfzBlockEnvelope<float> envelope { numElements, 0.0f };
         std::array<float, numElements> output;
-        envelope.addEvent(1, 0);
+        envelope.addEvent(0, 1);
         envelope.getEnvelope(output.data(), numElements);
         std::array<float, numElements> expected { 1.0f, 1.0f, 1.0f, 1.0f };
         REQUIRE( output == expected );
@@ -89,8 +89,8 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         constexpr int numElements { 4 };
         SfzBlockEnvelope<float> envelope { numElements, 0.0f };
         std::array<float, numElements> output;
-        envelope.addEvent(2, 0);
-        envelope.addEvent(1, 0);
+        envelope.addEvent(0, 2);
+        envelope.addEvent(0, 1);
         envelope.getEnvelope(output.data(), numElements);
         std::array<float, numElements> expected { 1.0f, 1.0f, 1.0f, 1.0f };
         REQUIRE( output == expected );
@@ -118,7 +118,7 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         constexpr int numElements { 4 };
         SfzBlockEnvelope<float> envelope { numElements, 0.0f };
         std::array<float, numElements> output;
-        envelope.addEvent(1, 2);
+        envelope.addEvent(2, 1);
         envelope.setFunction([](auto in){ return 2.0f * in; });
         envelope.getEnvelope(output.data(), numElements);
         std::array<float, numElements> expected { 0.0f, 1.0f, 2.0f, 2.0f };

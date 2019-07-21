@@ -84,36 +84,16 @@ void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
 
     // Compute the base amplitude gain
     baseGain = region->getBaseGain();
+
     // Initialize the CC envelopes
-    auto setupLinearCCEnvelope = [this] (SfzCCEnvelope& envelope, const auto& baseValue, const auto& ccSwitch) {
-        if (ccSwitch)
-        {
-            envelope.reset(ccState[ccSwitch->first]);
-            float slope = ccSwitch->second;
-            envelope.setTransform([this, baseValue, slope] (float ccValue) { return baseValue + slope * ccValue; });
-        }
-        else
-        {
-            envelope.reset();
-            envelope.setTransform([this, baseValue] (float ccValue) { return baseValue; });
-        }
-    };
-
-    setupLinearCCEnvelope(amplitudeEnvelope, region->amplitude, region->amplitudeCC);
-    setupLinearCCEnvelope(panEnvelope, region->pan, region->panCC);
-    if (region->isStereo())
+    if (region->amplitudeCC)
     {
-        setupLinearCCEnvelope(positionEnvelope, region->position, region->positionCC);
-        setupLinearCCEnvelope(widthEnvelope, region->width, region->widthCC);
+        amplitudeEnvelope.setFunction([this](uint8_t cc){
+            return baseGain + region->amplitudeCC->second * normalizeCC(cc) / 100.0f;}
+        );
+        amplitudeEnvelope.setDefaultValue(ccState[region->amplitudeCC->first]);
     }
-    else
-    {
-        widthEnvelope.reset();
-        positionEnvelope.reset();
-        widthEnvelope.setTransform([this] (float ccValue) { return 0.0f; });
-        positionEnvelope.setTransform([this] (float ccValue) { return 0.0f; });
-    }
-
+    
     // Initialize the source sample position and add a possibly random offset
     uint32_t totalOffset { region->offset };
     if (region->offsetRandom > 0)
@@ -326,6 +306,11 @@ void SfzVoice::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     this->sampleRate = sampleRate;
     amplitudeEGEnvelope.setSampleRate(sampleRate);
+    envelopeBuffer.resize(samplesPerBlock);
+    amplitudeEnvelope.reserve(samplesPerBlock);
+    panEnvelope.reserve(samplesPerBlock);
+    positionEnvelope.reserve(samplesPerBlock);
+    widthEnvelope.reserve(samplesPerBlock);
     reset();
 }
 
@@ -363,7 +348,7 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
         const int availableSamples = fifo.getNumReady();
         fifo.prepareToRead(availableSamples, start1, size1, start2, size2);
         int fifoIdx { start1 };
-        int end1 { start1 + size1  - 1};
+        int end1 { start1 + size1 - 1};
         int nextIdx { 0 };
         int consumedSamples { 0 };
 
@@ -412,6 +397,7 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
 void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
 {
     outputBuffer.clear(startSample, numSamples);
+    int envelopeIdx = 0;
     
     if (!isPlaying())
         return;
@@ -421,34 +407,23 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
     
     fillBuffer(outputBuffer, startSample, numSamples);
 
-    // Amplitude envelopes
+    // Amplitude EG envelopes
     for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
+        outputBuffer.applyGain(sampleIdx, 1, amplitudeEGEnvelope.getNextValue());
+    
+    if (region->amplitudeCC)
     {
-        float totalGain { baseGain };
-        float& left { *outputBuffer.getWritePointer(0, sampleIdx) };
-        float& right { *outputBuffer.getWritePointer(1, sampleIdx) };
-        // applyPanToSample(panEnvelope.getNextValue(), left, right);
-        // applyWidthAndPositionToSample(widthEnvelope.getNextValue(), positionEnvelope.getNextValue(), left, right);
-
-        // Apply a total gain
-        totalGain *= amplitudeEGEnvelope.getNextValue();
-        totalGain *= amplitudeEnvelope.getNextValue() / SfzDefault::amplitudeRange.getEnd();
-        left *= totalGain;
-        right *= totalGain;
+        amplitudeEnvelope.getEnvelope(envelopeBuffer.data(), numSamples);
+        for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
+            outputBuffer.applyGain(sampleIdx, 1, envelopeBuffer[envelopeIdx++]);
     }
-
-    clearEnvelopes();
+    else
+    {
+        outputBuffer.applyGain(baseGain);
+    }
 
     if (!fileLoadingPool.contains(this))
         fileLoadingPool.addJob(this, false);
-}
-
-void SfzVoice::clearEnvelopes() noexcept
-{
-    amplitudeEnvelope.clear();
-    panEnvelope.clear();
-    widthEnvelope.clear();
-    positionEnvelope.clear();
 }
 
 void SfzVoice::reset()

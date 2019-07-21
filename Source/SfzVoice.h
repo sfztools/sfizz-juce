@@ -25,7 +25,8 @@
 #include "SfzRegion.h"
 #include "SfzGlobals.h"
 #include "SfzEnvelope.h"
-#include "SfzCCEnvelope.h"
+#include "Buffer.h"
+#include "SfzBlockEnvelope.h"
 
 enum class SfzVoiceState
 {
@@ -93,10 +94,11 @@ private:
     float baseGain { 1.0f };
 
     SfzEnvelopeGeneratorValue amplitudeEGEnvelope;
-    SfzCCEnvelope amplitudeEnvelope;
-    SfzCCEnvelope panEnvelope;
-    SfzCCEnvelope positionEnvelope;
-    SfzCCEnvelope widthEnvelope;
+    SfzBlockEnvelope<float> amplitudeEnvelope;
+    SfzBlockEnvelope<float> panEnvelope;
+    SfzBlockEnvelope<float> positionEnvelope;
+    SfzBlockEnvelope<float> widthEnvelope;
+    Buffer<float> envelopeBuffer { config::defaultSamplesPerBlock };
 
     // Internal position and counters
     int initialDelay{0};
