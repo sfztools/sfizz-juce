@@ -87,8 +87,8 @@ private:
     double sampleRate { config::defaultSampleRate };
     
     // Basic ratios for resampling
-    double speedRatio { 1.0 };
-    double pitchRatio { 1.0 };
+    float speedRatio { 1.0 };
+    float pitchRatio { 1.0 };
     // Envelopes and states for the voice
     SfzVoiceState state { SfzVoiceState::idle };
     float baseGain { 1.0f };
@@ -102,11 +102,11 @@ private:
 
     // Internal position and counters
     int initialDelay{0};
-    int64 sourcePosition { 0 };
+    int sourcePosition { 0 };
     uint32_t loopCount { 1 };
     uint32_t localTime { 0 };
 
-    double decimalPosition { 0.0 };
+    float decimalPosition { 0.0f };
 
     JobStatus runJob() override;
     void clearEnvelopes() noexcept;

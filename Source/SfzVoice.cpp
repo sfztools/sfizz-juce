@@ -80,7 +80,7 @@ void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
     state = SfzVoiceState::playing;
 
     // Compute the resampling ratio for this region
-    speedRatio = region->sampleRate / this->sampleRate;
+    speedRatio = static_cast<float>(region->sampleRate / this->sampleRate);
 
     // Compute the base amplitude gain
     baseGain = region->getBaseGain();
@@ -232,17 +232,16 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
     if (fifo.getFreeSpace() == 0)
         return ThreadPoolJob::jobHasFinished;
 
-    jassert(sourcePosition <= region->sampleEnd && sourcePosition <= region->loopRange.getEnd());
     bool loopingSample = (region->loopMode == SfzLoopMode::loop_continuous || region->loopMode == SfzLoopMode::loop_sustain);
     // DBG("Reading " << requiredInputs << " samples for source " << region->sample << "(Remaining " << region->sampleEnd - sourcePosition << ")");
 
     // Source looping logic
-    const auto endOrLoopEnd = std::min(region->sampleEnd, region->loopRange.getEnd());
+    const int endOrLoopEnd = static_cast<int>(std::min(region->sampleEnd, region->loopRange.getEnd()));
     while (true)
     {
-        const auto samplesLeft = endOrLoopEnd - sourcePosition;
-        const auto numSamplesToRead = (int)std::min(samplesLeft, (int64)fifo.getFreeSpace());
-        const auto preloadedSamplesLeft = (int)((int64)preloadedData->getNumSamples() - sourcePosition);
+        const int samplesLeft { endOrLoopEnd - sourcePosition };
+        const auto numSamplesToRead = std::min(samplesLeft, fifo.getFreeSpace());
+        const int preloadedSamplesLeft { preloadedData->getNumSamples() - sourcePosition };
 
         if (preloadedSamplesLeft > 0)
         {
@@ -382,6 +381,7 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
             decimalPosition += speedRatio * pitchRatio;
             const auto sampleStep = static_cast<int>(decimalPosition);
 
+            // DBG("Position " << fifoIdx << " " << nextIdx << " step " << decimalPosition << " (+" << sampleStep << ")");
             fifoIdx += sampleStep;
             decimalPosition -= sampleStep;
             consumedSamples += sampleStep;

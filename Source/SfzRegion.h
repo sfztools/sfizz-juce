@@ -42,7 +42,7 @@ struct SfzRegion
     bool prepare();
     bool isStereo() const noexcept;
     float velocityGain(uint8_t velocity) const noexcept;
-    double getBasePitchVariation(int noteNumber, uint8_t velocity) const noexcept
+    float getBasePitchVariation(int noteNumber, uint8_t velocity) const noexcept
     {
         auto pitchVariationInCents = pitchKeytrack * (noteNumber - (int)pitchKeycenter); // note difference with pitch center
         pitchVariationInCents += tune; // sample tuning
@@ -71,7 +71,7 @@ struct SfzRegion
             baseGain = 0.0f;
         else if (noteNumber < crossfadeKeyInRange.getEnd())
         {
-            const auto crossfadePosition = (noteNumber - crossfadeKeyInRange.getStart()) / crossfadeKeyInRange.getLength();
+            const auto crossfadePosition = static_cast<float>(noteNumber - crossfadeKeyInRange.getStart()) / crossfadeKeyInRange.getLength();
             if (crossfadeKeyCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(crossfadePosition);
             if (crossfadeKeyCurve == SfzCrossfadeCurve::gain)
@@ -82,7 +82,7 @@ struct SfzRegion
             baseGain = 0.0f;
         else if (noteNumber > crossfadeKeyOutRange.getStart())
         {
-            const auto crossfadePosition = (noteNumber - crossfadeKeyOutRange.getStart()) / crossfadeKeyOutRange.getLength();
+            const auto crossfadePosition = static_cast<float>(noteNumber - crossfadeKeyOutRange.getStart()) / crossfadeKeyOutRange.getLength();
             if (crossfadeKeyCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(1 - crossfadePosition);
             if (crossfadeKeyCurve == SfzCrossfadeCurve::gain)
@@ -93,7 +93,7 @@ struct SfzRegion
             baseGain = 0;
         else if (velocity < crossfadeVelInRange.getEnd())
         {
-            const auto crossfadePosition = (noteNumber - crossfadeVelInRange.getStart()) / crossfadeVelInRange.getLength();
+            const auto crossfadePosition = static_cast<float>(noteNumber - crossfadeVelInRange.getStart()) / crossfadeVelInRange.getLength();
             if (crossfadeVelCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(crossfadePosition);
             if (crossfadeVelCurve == SfzCrossfadeCurve::gain)
@@ -104,7 +104,7 @@ struct SfzRegion
             baseGain = 0;
         else if (velocity > crossfadeVelOutRange.getStart())
         {
-            const auto crossfadePosition = (noteNumber - crossfadeVelOutRange.getStart()) / crossfadeVelOutRange.getLength();
+            const auto crossfadePosition = static_cast<float>(noteNumber - crossfadeVelOutRange.getStart()) / crossfadeVelOutRange.getLength();
             if (crossfadeVelCurve == SfzCrossfadeCurve::power)
                 baseGain *= sqrt(1 - crossfadePosition);
             if (crossfadeVelCurve == SfzCrossfadeCurve::gain)
