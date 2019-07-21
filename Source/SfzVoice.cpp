@@ -34,6 +34,8 @@ SfzVoice::SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCV
 
 SfzVoice::~SfzVoice()
 {
+    if (fileLoadingPool.contains(this))
+        fileLoadingPool.removeJob(this, true, 100);
 }
 
 void SfzVoice::release(int timestamp, bool useFastRelease)
@@ -55,7 +57,7 @@ void SfzVoice::startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNum
     amplitudeEGEnvelope.prepare(region->amplitudeEG, ccState, velocity, sampleDelay);
 }
 
-void SfzVoice::startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue, int sampleDelay)
+void SfzVoice::startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue [[maybe_unused]], int sampleDelay)
 {
     commonStartVoice(newRegion, sampleDelay);
     triggeringCCNumber = ccNumber;
@@ -143,7 +145,7 @@ void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
     fileLoadingPool.addJob(this, false);
 }
 
-void SfzVoice::registerNoteOff(int channel, int noteNumber, uint8_t velocity, int timestamp)
+void SfzVoice::registerNoteOff(int channel, int noteNumber, uint8_t velocity [[maybe_unused]], int timestamp)
 {
     if (region == nullptr || !triggeringNoteNumber || !triggeringChannel)
         return;
@@ -173,6 +175,9 @@ void SfzVoice::registerPitchWheel(int channel, int pitch, int timestamp)
 void SfzVoice::registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp)
 {
     if (region == nullptr)
+        return;
+
+    if (!withinRange(region->channelRange, channel))
         return;
 
     if (triggeringCCNumber && *triggeringCCNumber == ccNumber && !withinRange(region->ccTriggers.at(ccNumber), ccValue))
@@ -271,7 +276,8 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
         }
 
         // We reached the sample end or sample loop end
-        if (sourcePosition == region->sampleEnd || sourcePosition == region->loopRange.getEnd() )
+        if (    sourcePosition == static_cast<int>(region->sampleEnd)
+            ||  sourcePosition == static_cast<int>(region->loopRange.getEnd()) )
         {
             if (loopingSample)
             {
@@ -301,15 +307,16 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
     return ThreadPoolJob::jobHasFinished;
 }
 
-void SfzVoice::prepareToPlay(double sampleRate, int samplesPerBlock)
+void SfzVoice::prepareToPlay(double newSampleRate, int newSamplesPerBlock)
 {
-    this->sampleRate = sampleRate;
-    amplitudeEGEnvelope.setSampleRate(sampleRate);
-    envelopeBuffer.resize(samplesPerBlock);
-    amplitudeEnvelope.reserve(samplesPerBlock);
-    panEnvelope.reserve(samplesPerBlock);
-    positionEnvelope.reserve(samplesPerBlock);
-    widthEnvelope.reserve(samplesPerBlock);
+    this->sampleRate = newSampleRate;
+    this->samplesPerBlock = newSamplesPerBlock;
+    amplitudeEGEnvelope.setSampleRate(newSampleRate);
+    envelopeBuffer.resize(newSamplesPerBlock);
+    amplitudeEnvelope.reserve(newSamplesPerBlock);
+    panEnvelope.reserve(newSamplesPerBlock);
+    positionEnvelope.reserve(newSamplesPerBlock);
+    widthEnvelope.reserve(newSamplesPerBlock);
     reset();
 }
 
@@ -357,9 +364,6 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
         // Sample reading and pitch correction
         for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
         {
-            auto* leftOut = outputBuffer.getWritePointer(0, sampleIdx);
-            auto* rightOut = outputBuffer.getWritePointer(1, sampleIdx);
-
             if (fifoIdx == end1)
             {
                 nextIdx = start2;

@@ -87,12 +87,12 @@ public:
 private:
     int getNumReady() const noexcept
     {
-        return points.size() - readIndex;
+        return static_cast<int>(points.size()) - readIndex;
     }
 
     int getFreeSpace() const noexcept
     {
-        return points.capacity() - points.size();
+        return static_cast<int>(points.capacity() - points.size());
     }
 
     std::function<float(float)> transformValue { [] (float ccValue) -> float { return ccValue; } };

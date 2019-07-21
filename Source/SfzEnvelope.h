@@ -79,7 +79,7 @@ struct SfzEnvelopeGeneratorDescription
     {
         return ccSwitchedValue(ccValues, ccRelease, release) + normalizeCC(velocity)*vel2release;
     }
-    float getStart(const CCValueArray &ccValues, uint8_t velocity) const noexcept
+    float getStart(const CCValueArray &ccValues, uint8_t velocity [[maybe_unused]]) const noexcept
     {
         return ccSwitchedValue(ccValues, ccStart, start);
     }

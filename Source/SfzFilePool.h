@@ -97,10 +97,10 @@ public:
         audioFormatManager.registerBasicFormats();
     }
 
-    void setRootDirectory(const File& rootDirectory)
+    void setRootDirectory(const File& directory)
     {
-        if (rootDirectory.isDirectory())
-            this->rootDirectory = rootDirectory;
+        if (directory.isDirectory())
+            this->rootDirectory = directory;
     }
     
     void preload(const String& sampleName, int offset = 0, int numSamples = config::preloadSize)

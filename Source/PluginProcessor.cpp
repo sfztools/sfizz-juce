@@ -28,14 +28,12 @@
 SfzpluginAudioProcessor::SfzpluginAudioProcessor()
      : AudioProcessor (BusesProperties().withOutput ("Output", AudioChannelSet::stereo(), true))
 {
-    loadingThread.startThread(8);
     formatManager.registerBasicFormats();
 }
 
 SfzpluginAudioProcessor::~SfzpluginAudioProcessor()
 {
-    auto threadStopped = loadingThread.stopThread(1000);
-    jassert(threadStopped);
+
 }
 
 //==============================================================================
@@ -87,26 +85,26 @@ int SfzpluginAudioProcessor::getCurrentProgram()
     return 0;
 }
 
-void SfzpluginAudioProcessor::setCurrentProgram (int index)
+void SfzpluginAudioProcessor::setCurrentProgram (int index [[maybe_unused]])
 {
 }
 
-const String SfzpluginAudioProcessor::getProgramName (int index)
+const String SfzpluginAudioProcessor::getProgramName (int index [[maybe_unused]] )
 {
     return {};
 }
 
-void SfzpluginAudioProcessor::changeProgramName (int index, const String& newName)
+void SfzpluginAudioProcessor::changeProgramName (int index [[maybe_unused]] , const String& newName [[maybe_unused]] )
 {
 }
 
 //==============================================================================
-void SfzpluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void SfzpluginAudioProcessor::prepareToPlay (double newSampleRate, int newSamplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    this->sampleRate = sampleRate;
-    sfzSynth.prepareToPlay(sampleRate, samplesPerBlock);
+    this->sampleRate = newSampleRate;
+    sfzSynth.prepareToPlay(newSampleRate, newSamplesPerBlock);
 }
 
 void SfzpluginAudioProcessor::releaseResources()
@@ -160,13 +158,13 @@ void SfzpluginAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
 	{
 		// DBG("[Timestamp " << timestamp << " ] Midi event: " << msg.getDescription()); 
 		if (msg.isController())
-			sfzSynth.registerCC(msg.getChannel(), msg.getControllerNumber(), msg.getControllerValue(), timestamp);
+			sfzSynth.registerCC(msg.getChannel(), msg.getControllerNumber(), static_cast<uint8_t>(msg.getControllerValue()), timestamp);
         if (msg.isNoteOn())
 			sfzSynth.registerNoteOn(msg.getChannel(), msg.getNoteNumber(), msg.getVelocity(), timestamp);
         if (msg.isNoteOff())
 			sfzSynth.registerNoteOff(msg.getChannel(), msg.getNoteNumber(), msg.getVelocity(), timestamp);
         if (msg.isChannelPressure())
-			sfzSynth.registerAftertouch(msg.getChannel(), msg.getAfterTouchValue(), timestamp); 
+			sfzSynth.registerAftertouch(msg.getChannel(), static_cast<uint8_t>(msg.getAfterTouchValue()), timestamp); 
         if (msg.isPitchWheel())
 			sfzSynth.registerPitchWheel(msg.getChannel(), msg.getPitchWheelValue(), timestamp);        
 	}
@@ -175,7 +173,7 @@ void SfzpluginAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
     
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        auto* channelData = buffer.getWritePointer (channel);
+        //auto* channelData = buffer.getWritePointer (channel);
         // ..do something to the data...
     }
 }
@@ -192,14 +190,14 @@ AudioProcessorEditor* SfzpluginAudioProcessor::createEditor()
 }
 
 //==============================================================================
-void SfzpluginAudioProcessor::getStateInformation (MemoryBlock& destData)
+void SfzpluginAudioProcessor::getStateInformation (MemoryBlock& destData [[maybe_unused]] )
 {
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
 }
 
-void SfzpluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void SfzpluginAudioProcessor::setStateInformation (const void* data [[maybe_unused]] , int sizeInBytes [[maybe_unused]] )
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.

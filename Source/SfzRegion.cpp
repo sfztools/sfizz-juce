@@ -24,6 +24,9 @@
 SfzRegion::SfzRegion(const File& root, SfzFilePool& filePool)
 : rootDirectory(root), filePool(filePool)
 {
+    for (auto& velocity : lastNoteVelocities)
+        velocity = 0;
+
     for (auto& ccSwitch: ccSwitched)
         ccSwitch = true;
 }
@@ -349,7 +352,7 @@ bool SfzRegion::registerNoteOn(int channel, int noteNumber, uint8_t velocity, fl
     return keyOk && velOk && chanOk && randOk && (attackTrigger || firstLegatoNote || notFirstLegatoNote);
 }
 
-bool SfzRegion::registerNoteOff(int channel, int noteNumber, uint8_t velocity, float randValue)
+bool SfzRegion::registerNoteOff(int channel, int noteNumber, uint8_t velocity [[maybe_unused]], float randValue)
 {
     // You have to call prepare before sending notes to the region
     jassert(prepared);
@@ -384,6 +387,9 @@ bool SfzRegion::registerCC(int channel, int ccNumber, uint8_t ccValue)
 {
     // You have to prepare the region before calling this function
     jassert(prepared);
+    if (!withinRange(channelRange, channel))
+        return false;
+
     if (withinRange(ccConditions.getWithDefault(ccNumber), ccValue))
         ccSwitched[ccNumber] = true;
     else
@@ -399,6 +405,9 @@ void SfzRegion::registerPitchWheel(int channel, int pitch)
 {
     // You have to prepare the region before calling this function
     jassert(prepared);
+    if (!withinRange(channelRange, channel))
+        return;
+    
     if (withinRange(bendRange, pitch))
         pitchSwitched = true;
     else
@@ -409,6 +418,9 @@ void SfzRegion::registerAftertouch(int channel, uint8_t aftertouch)
 {
     // You have to prepare the region before calling this function
     jassert(prepared);
+    if (!withinRange(channelRange, channel))
+        return;
+    
     if (withinRange(aftertouchRange, aftertouch))
         aftertouchSwitched = true;
     else

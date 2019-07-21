@@ -96,7 +96,6 @@ private:
     SfzSynth sfzSynth;
     double sampleRate { 48000 };
     MidiKeyboardState keyboardState;
-    TimeSliceThread loadingThread { "Background loading thread" };
     AudioFormatManager formatManager;
     std::unique_ptr<BufferingAudioSource> audioSource;
     bool noteStarted { false };

@@ -42,7 +42,8 @@ SfzSynth::~SfzSynth()
 
 void SfzSynth::initalizeVoices(int numVoices)
 {
-	for (int i = 0; i < config::numVoices; ++i)
+    voices.clear();
+	for (int i = 0; i < numVoices; ++i)
 	{
 		auto & voice = voices.emplace_back(fileLoadingPool, filePool, ccState);
 		voice.prepareToPlay(sampleRate, samplesPerBlock);
@@ -393,13 +394,13 @@ void SfzSynth::resetMidiState()
 		cc = 0;
 }
 
-void SfzSynth::prepareToPlay(double sampleRate, int samplesPerBlock)
+void SfzSynth::prepareToPlay(double newSampleRate, int newSamplesPerBlock)
 {
-	this->sampleRate = sampleRate;
-	this->samplesPerBlock = samplesPerBlock;
+	this->sampleRate = newSampleRate;
+	this->samplesPerBlock = newSamplesPerBlock;
 	for (auto& voice: voices)
-		voice.prepareToPlay(sampleRate, samplesPerBlock);
-	tempBuffer = AudioBuffer<float>(config::numChannels, samplesPerBlock);
+		voice.prepareToPlay(newSampleRate, newSamplesPerBlock);
+	tempBuffer = AudioBuffer<float>(config::numChannels, newSamplesPerBlock);
 }
 
 void SfzSynth::registerNoteOn(int channel, int noteNumber, uint8_t velocity, int timestamp)
@@ -490,7 +491,7 @@ void SfzSynth::registerAftertouch(int channel, uint8_t aftertouch, int timestamp
 		voice.registerAftertouch(channel, aftertouch, timestamp);
 }
 
-void SfzSynth::registerTempo(float secondsPerQuarter, int timestamp)
+void SfzSynth::registerTempo(float secondsPerQuarter, int timestamp [[maybe_unused]])
 {
 	for (auto& region: regions)
 		region.registerTempo(secondsPerQuarter);
