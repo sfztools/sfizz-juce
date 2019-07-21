@@ -61,6 +61,41 @@ TEST_CASE("BlockEnvelope Tests", "BlockEnvelope Tests")
         REQUIRE( output == expected2 );
     }
 
+    SECTION("Duplicate events")
+    {
+        constexpr int numElements { 4 };
+        SfzBlockEnvelope<float> envelope { numElements, 0.0f };
+        std::array<float, numElements> output;
+        envelope.addEvent(2, 2);
+        envelope.addEvent(1, 2);
+        envelope.getEnvelope(output.data(), numElements);
+        std::array<float, numElements> expected { 0.0f, 0.5f, 1.0f, 1.0f };
+        REQUIRE( output == expected );
+    }
+
+    SECTION("Event at the start")
+    {
+        constexpr int numElements { 4 };
+        SfzBlockEnvelope<float> envelope { numElements, 0.0f };
+        std::array<float, numElements> output;
+        envelope.addEvent(1, 0);
+        envelope.getEnvelope(output.data(), numElements);
+        std::array<float, numElements> expected { 1.0f, 1.0f, 1.0f, 1.0f };
+        REQUIRE( output == expected );
+    }
+
+    SECTION("Duplicate event at the start")
+    {
+        constexpr int numElements { 4 };
+        SfzBlockEnvelope<float> envelope { numElements, 0.0f };
+        std::array<float, numElements> output;
+        envelope.addEvent(2, 0);
+        envelope.addEvent(1, 0);
+        envelope.getEnvelope(output.data(), numElements);
+        std::array<float, numElements> expected { 1.0f, 1.0f, 1.0f, 1.0f };
+        REQUIRE( output == expected );
+    }
+
     SECTION("Too many events")
     {
         constexpr int numElements { 4 };

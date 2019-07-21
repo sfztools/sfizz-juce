@@ -23,7 +23,15 @@ public:
     void addEvent(InputType value, int timestamp)
     {
         if (events.size() < maximumEvents)
-            events.push_back({ timestamp, value });
+        {
+            auto existingEvent = std::find_if(events.begin(), events.end(), [&](const auto& event) {
+                return timestamp == event.timestamp;
+            });
+            if (existingEvent == events.end())
+                events.push_back({ timestamp, value });
+            else
+                existingEvent->value = value;
+        }
     }
 
     void getEnvelope(OutputType* output, int numSamples)
@@ -36,29 +44,15 @@ public:
 
         std::sort(events.begin(), events.end(), EventComparator());
         int eventIndex { 0 };
-
-        while (events[eventIndex].timestamp == 0 && eventIndex < events.size())
-        {
-            currentValue = transform(events[eventIndex].value);
-            eventIndex++;
-        }
-
-        if (eventIndex == events.size())
-        {
-            std::fill(output, output + numSamples, currentValue);
-            clearEvents();
-            return;
-        }
-
         int sampleIndex { 0 };
-        int numSteps { events[eventIndex].timestamp };
-        OutputType step { (transform(events[eventIndex].value) - currentValue) / numSteps };
+        int numSteps { 0 };
+        OutputType step { 0.0f };
 
         while (sampleIndex < numSamples)
         {
             if (numSteps == 0)
             {
-                while (events[eventIndex].timestamp == sampleIndex && eventIndex < events.size())
+                if (events[eventIndex].timestamp == sampleIndex)
                 {
                     currentValue = transform(events[eventIndex].value);
                     eventIndex++;
@@ -82,6 +76,7 @@ public:
             sampleIndex++;
             currentValue += step;
         }
+
         // Backtrack if we get here because it means we went 1 step too far out
         currentValue -= step;
         clearEvents();
