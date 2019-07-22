@@ -95,8 +95,10 @@ private:
     SfzBlockEnvelope<float> panEnvelope;
     SfzBlockEnvelope<float> positionEnvelope;
     SfzBlockEnvelope<float> widthEnvelope;
-    HeapBlock<char> envelopeHeapBlock;
-    dsp::AudioBlock<float> envelopeBuffer;
+    HeapBlock<char> tempHeapBlock1;
+    HeapBlock<char> tempHeapBlock2;
+    dsp::AudioBlock<float> tempBlock1;
+    dsp::AudioBlock<float> tempBlock2;
     // Buffer<float> envelopeBuffer { config::defaultSamplesPerBlock };
 
     // Internal position and counters
@@ -111,6 +113,7 @@ private:
     void clearEnvelopes() noexcept;
     void release(int timestamp, bool useFastRelease = false);
     void fillBuffer(AudioBuffer<float>& buffer, int startSample, int numSamples);
+    void fillBlock(dsp::AudioBlock<float> block);
     void commonStartVoice(SfzRegion& newRegion, int sampleDelay);
     JUCE_LEAK_DETECTOR(SfzVoice)
 };

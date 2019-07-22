@@ -225,7 +225,8 @@ void SfzVoice::prepareToPlay(double newSampleRate, int newSamplesPerBlock)
     this->sampleRate = newSampleRate;
     this->samplesPerBlock = newSamplesPerBlock;
     amplitudeEGEnvelope.setSampleRate(newSampleRate);
-    envelopeBuffer = dsp::AudioBlock<float>(envelopeHeapBlock, config::numChannels, newSamplesPerBlock);
+    tempBlock1 = dsp::AudioBlock<float>(tempHeapBlock1, config::numChannels, newSamplesPerBlock);
+    tempBlock2 = dsp::AudioBlock<float>(tempHeapBlock2, config::numChannels, newSamplesPerBlock);
     amplitudeEnvelope.reserve(newSamplesPerBlock);
     panEnvelope.reserve(newSamplesPerBlock);
     positionEnvelope.reserve(newSamplesPerBlock);
@@ -242,6 +243,138 @@ bool SfzVoice::checkOffGroup(uint32_t group, int timestamp)
     }
 
     return false;
+}
+
+void SfzVoice::fillBlock(dsp::AudioBlock<float> block)
+{
+    if (region->sample == "*sine")
+    {
+        const auto frequency = MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(region->pitchKeycenter) * pitchRatio;
+
+        for (int chanIdx = 0; chanIdx < config::numChannels; chanIdx++)
+            for(int sampleIdx = 0; sampleIdx < block.getNumSamples(); sampleIdx++)
+                block.setSample(chanIdx, sampleIdx, static_cast<float>(std::sin(frequency * localTime++ / sampleRate)));
+
+        return;
+    }
+
+    const auto samplesToClear = std::min(initialDelay, (int)block.getNumSamples());
+    if (initialDelay > 0)
+    {
+        block.getSubBlock(0, samplesToClear).clear();
+        initialDelay -= samplesToClear;
+
+        if (samplesToClear == block.getNumSamples())
+            return;
+        else
+            block = block.getSubBlock(samplesToClear);
+    }
+
+    auto nextPositionBlock = tempBlock1.getSubBlock(0, block.getNumSamples());
+    auto interpolationBlock = tempBlock2.getSubBlock(0, block.getNumSamples());
+
+    int nextPosition { 0 };
+    if (dataReady)
+    {
+        const int lastSample { fileData->getNumSamples() - 1 };
+        for (auto sampleIdx = 0; sampleIdx < block.getNumSamples(); ++sampleIdx)
+        {
+            if (sourcePosition > lastSample)
+            {
+                const int overflow { sourcePosition - lastSample - 1};
+                if (region->shouldLoop())
+                {
+                    sourcePosition = region->loopRange.getStart() + overflow;
+                    nextPosition = sourcePosition + 1;
+                }
+                else if (region->sampleCount && loopCount < *region->sampleCount)
+                {
+                    // We're looping and counting, restart the source position
+                    loopCount += 1;
+                    sourcePosition = region->loopRange.getStart() + overflow;
+                    nextPosition = sourcePosition + 1;
+                }
+                else
+                {
+                    block.getSubBlock(sampleIdx).clear();
+                    nextPositionBlock.getSubBlock(sampleIdx).clear();
+                    interpolationBlock.getSubBlock(sampleIdx).clear();
+                    release(sampleIdx + samplesToClear);
+                    break;
+                }
+            }
+            else if (sourcePosition == lastSample)
+            {
+                if (region->shouldLoop())
+                {
+                    nextPosition = region->loopRange.getStart();
+                }
+                else if (region->sampleCount && loopCount < *region->sampleCount)
+                {
+                    loopCount += 1;
+                    nextPosition = region->loopRange.getStart();
+                }
+                else
+                {
+                    block.getSubBlock(sampleIdx).clear();
+                    nextPositionBlock.getSubBlock(sampleIdx).clear();
+                    interpolationBlock.getSubBlock(sampleIdx).clear();
+                    release(sampleIdx + samplesToClear);
+                    return;
+                }
+            }
+            else
+            {
+                nextPosition = sourcePosition + 1;
+            }
+
+            nextPosition = sourcePosition + 1;
+            for (auto chanIdx = 0; chanIdx < config::numChannels; ++chanIdx)
+            {
+                block.setSample(chanIdx, sampleIdx, fileData->getSample(chanIdx, sourcePosition));
+                nextPositionBlock.setSample(chanIdx, sampleIdx, fileData->getSample(chanIdx, nextPosition));
+                interpolationBlock.setSample(chanIdx, sampleIdx, decimalPosition);
+            }
+
+            decimalPosition += speedRatio * pitchRatio;
+            const auto sampleStep = static_cast<int>(decimalPosition);
+            sourcePosition += sampleStep;
+            decimalPosition -= sampleStep;
+        }
+    }
+    else
+    {
+        for (auto sampleIdx = 0; sampleIdx < block.getNumSamples(); ++sampleIdx)
+        {
+            // We need these because the preloaded data may be reused for multiple samples...
+            if (    sourcePosition >= preloadedData->getNumSamples() - 1
+                ||  sourcePosition >= (region->loopRange.getEnd() - 1) 
+                ||  sourcePosition >= (region->sampleEnd - 1))
+            {
+                block.getSubBlock(sampleIdx).clear();
+                nextPositionBlock.getSubBlock(sampleIdx).clear();
+                interpolationBlock.getSubBlock(sampleIdx).clear();
+                break;
+            }
+
+            nextPosition = sourcePosition + 1;
+            for (auto chanIdx = 0; chanIdx < config::numChannels; ++chanIdx)
+            {
+                block.setSample(chanIdx, sampleIdx, preloadedData->getSample(chanIdx, sourcePosition));
+                nextPositionBlock.setSample(chanIdx, sampleIdx, preloadedData->getSample(chanIdx, nextPosition));
+                interpolationBlock.setSample(chanIdx, sampleIdx, decimalPosition);
+            }
+            
+            decimalPosition += speedRatio * pitchRatio;
+            const auto sampleStep = static_cast<int>(decimalPosition);
+            sourcePosition += sampleStep;
+            decimalPosition -= sampleStep;
+        }
+    }
+
+    nextPositionBlock.multiply(interpolationBlock);
+    interpolationBlock.negate().add(1.0f);
+    block.multiply(interpolationBlock).add(nextPositionBlock);
 }
 
 void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
@@ -380,10 +513,10 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
     if (region == nullptr)
         return;
     
-    fillBuffer(outputBuffer, startSample, numSamples);
-    
+    // fillBuffer(outputBuffer, startSample, numSamples);
     auto outputBlock = dsp::AudioBlock<float>(outputBuffer).getSubBlock(startSample, numSamples);
-    auto localEnvelopeBuffer = envelopeBuffer.getSubBlock(startSample, numSamples);
+    fillBlock(outputBlock);
+    auto localEnvelopeBuffer = tempBlock1.getSubBlock(startSample, numSamples);
 
     // Amplitude EG envelopes
     for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
