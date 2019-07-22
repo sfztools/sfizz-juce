@@ -365,12 +365,12 @@ void SfzVoice::fillWithPreloadedData(dsp::AudioBlock<float> block, int releaseOf
     auto interpolationBlock = tempBlock2.getSubBlock(0, block.getNumSamples());
     int nextPosition { 0 };
 
+    const auto endOrLoopEnd = static_cast<int>(jmin(region->sampleEnd, region->loopRange.getEnd()));
+    const auto lastValidSample = jmin(preloadedData->getNumSamples(), endOrLoopEnd) - 1;
     for (auto sampleIdx = 0; sampleIdx < block.getNumSamples(); ++sampleIdx)
     {
         // We need these because the preloaded data may be reused for multiple samples...
-        if (    sourcePosition >= preloadedData->getNumSamples() - 1
-            ||  sourcePosition >= (region->loopRange.getEnd() - 1) 
-            ||  sourcePosition >= (region->sampleEnd - 1))
+        if ( sourcePosition >= lastValidSample)
         {
             block.getSubBlock(sampleIdx).clear();
             nextPositionBlock.getSubBlock(sampleIdx).clear();
@@ -425,13 +425,12 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
         outputBlock.multiply(baseGain);
     }
 
-    if (state == SfzVoiceState::release && !amplitudeEGEnvelope.isSmoothing())
+    if (state == SfzVoiceState::release && !amplitudeEGEnvelope.isSmoothing() && !fileLoadingPool.contains(this))
         fileLoadingPool.addJob(this, false);
 }
 
 void SfzVoice::reset() noexcept
 {
-    DBG("Reset the voice to its idling state");
     state = SfzVoiceState::idle;
     region = nullptr;
     triggeringNoteNumber.reset();
