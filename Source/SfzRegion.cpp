@@ -453,6 +453,9 @@ bool SfzRegion::prepare()
         }
 
         sampleRate = reader->sampleRate;
+        // The file is way too big to be "normal". A sample of 4 GB is a bit over the top, isn't it?
+        jassert(reader->lengthInSamples <= SfzDefault::sampleEndRange.getEnd());
+        
         if (sampleEnd == SfzDefault::sampleEndRange.getEnd())
             sampleEnd = static_cast<uint32_t>(reader->lengthInSamples);
         numChannels = reader->numChannels;

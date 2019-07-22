@@ -39,6 +39,7 @@ void SfzVoice::release(int timestamp, bool useFastRelease)
 {
     if (state != SfzVoiceState::release)
     {
+        DBG("Sample " << region->sample << " releasing...");
         state = SfzVoiceState::release;
         amplitudeEGEnvelope.release(timestamp, useFastRelease);  
     }
@@ -63,12 +64,14 @@ void SfzVoice::startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber,
 
 void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
 {
-        // The voice should be idling!
+    // The voice should be idling!
     jassert(state == SfzVoiceState::idle);
     // Positive delay
     jassert(sampleDelay >= 0);
     if (sampleDelay < 0)
         sampleDelay = 0;
+
+    DBG("Starting voice with " << newRegion.sample);
 
     auto secondsToSamples = [this](auto timeInSeconds) { 
         return static_cast<int>(timeInSeconds * sampleRate);
@@ -189,24 +192,30 @@ ThreadPoolJob::JobStatus SfzVoice::runJob()
 
     // TODO: do a switch here?
     // Normal case: we are not releasing so we are playing
-    auto reader = filePool.createReaderFor(region->sample);
-    // We should not have a null reader here, something is wrong
-    if (reader == nullptr) // still null
-    {
-        DBG("Could not create reader: something is wrong with the sample " << region->sample);
-        return ThreadPoolJob::jobHasFinished;
-    }
     
-    const int64 endOrLoopEnd = static_cast<int64>(std::min(region->sampleEnd, region->loopRange.getEnd()));
+    const uint32_t endOrLoopEnd = std::min(region->sampleEnd, region->loopRange.getEnd());
     // A >2 gb sample file is a bit unreasonable, but it will cause serious issues
-    jassert(reader->lengthInSamples <= std::numeric_limits<int>::max());
     jassert(endOrLoopEnd <= std::numeric_limits<int>::max());
+    const int numSamples = static_cast<int>(endOrLoopEnd);
 
-    const int numSamples = static_cast<int>(std::min(reader->lengthInSamples, endOrLoopEnd));
+    
+    if (numSamples <= preloadedData->getNumSamples())
+    {
+        fileData = preloadedData;
+    }
+    else
+    {
+        fileData = std::make_shared<AudioBuffer<float>>(config::numChannels, numSamples);
+        auto reader = filePool.createReaderFor(region->sample);
+        // We should not have a null reader here, something is wrong
+        if (reader == nullptr) // still null
+        {
+            DBG("Could not create reader: something is wrong with the sample " << region->sample);
+            return ThreadPoolJob::jobHasFinished;
+        }
+        reader->read(fileData.get(), 0, numSamples, 0, true, true);
+    }
 
-    fileData = std::make_unique<AudioBuffer<float>>(config::numChannels, numSamples);
-    fileData->clear();
-    reader->read(fileData.get(), 0, numSamples, 0, true, true);
     dataReady = true;
     return ThreadPoolJob::jobHasFinished;
 }
@@ -320,6 +329,7 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
                 }
                 else
                 {
+                    release(sampleIdx - startSample);
                     outputBuffer.clear(startSample, endSample - startSample);
                     return;
                 }
@@ -337,7 +347,6 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
                 }
                 else
                 {
-                    DBG("Sample " << region->sample << " end! Releasing...");
                     release(sampleIdx - startSample);
                     outputBuffer.clear(startSample, endSample - startSample);
                     return;
@@ -394,13 +403,13 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
 
 void SfzVoice::reset()
 {
+    DBG("Reset the voice to its idling state");
     state = SfzVoiceState::idle;
     region = nullptr;
     triggeringNoteNumber.reset();
     triggeringCCNumber.reset();
     triggeringChannel.reset();
     dataReady = false;
-    reader.reset();
     fileData.reset();
     preloadedData.reset();
     initialDelay = 0;

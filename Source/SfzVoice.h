@@ -72,9 +72,8 @@ private:
     std::optional<int> triggeringNoteNumber;
     std::optional<int> triggeringCCNumber;
     SfzRegion* region { nullptr };
-    std::unique_ptr<AudioFormatReader> reader { nullptr };
     std::shared_ptr<AudioBuffer<float>> preloadedData { nullptr };
-    std::unique_ptr<AudioBuffer<float>> fileData { nullptr };
+    std::shared_ptr<AudioBuffer<float>> fileData { nullptr };
     std::atomic<bool> dataReady;
 
     // Sustain logic

@@ -56,7 +56,7 @@ public:
         };
     }
 
-    void paint(Graphics & g)
+    void paint(Graphics & g) override
     {
         g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
         auto r = getLocalBounds();

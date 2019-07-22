@@ -34,7 +34,7 @@ namespace config
 {
     inline constexpr double defaultSampleRate { 48000 };
     inline constexpr int defaultSamplesPerBlock { 1024 };
-    inline constexpr int preloadSize { 8192 };
+    inline constexpr int preloadSize { 4096 };
     inline constexpr int numChannels { 2 };
     inline constexpr int numVoices { 64 };
     inline constexpr int maxGroups { 32 };
