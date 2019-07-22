@@ -88,7 +88,7 @@ void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
     if (region->amplitudeCC)
     {
         amplitudeEnvelope.setFunction([this](uint8_t cc){
-            return baseGain + region->amplitudeCC->second * normalizeCC(cc) / 100.0f;}
+            return baseGain * region->amplitudeCC->second * normalizeCC(cc) / 100.0f;}
         );
         amplitudeEnvelope.setDefaultValue(ccState[region->amplitudeCC->first]);
     }
