@@ -6,6 +6,7 @@ project(sfizz VERSION 1.0.0 LANGUAGES CXX)
 # Change this if needed
 if(UNIX)
     set(JUCE_ROOT_DIR "~/source/JUCE")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DJUCE_DEBUG")
 else()
     set(JUCE_ROOT_DIR "C:/Users/paulf/source/JUCE")
 endif()
