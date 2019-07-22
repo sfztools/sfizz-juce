@@ -225,7 +225,7 @@ void SfzVoice::prepareToPlay(double newSampleRate, int newSamplesPerBlock)
     this->sampleRate = newSampleRate;
     this->samplesPerBlock = newSamplesPerBlock;
     amplitudeEGEnvelope.setSampleRate(newSampleRate);
-    envelopeBuffer.resize(newSamplesPerBlock);
+    envelopeBuffer = dsp::AudioBlock<float>(envelopeHeapBlock, config::numChannels, newSamplesPerBlock);
     amplitudeEnvelope.reserve(newSamplesPerBlock);
     panEnvelope.reserve(newSamplesPerBlock);
     positionEnvelope.reserve(newSamplesPerBlock);
@@ -381,6 +381,9 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
         return;
     
     fillBuffer(outputBuffer, startSample, numSamples);
+    
+    auto outputBlock = dsp::AudioBlock<float>(outputBuffer).getSubBlock(startSample, numSamples);
+    auto localEnvelopeBuffer = envelopeBuffer.getSubBlock(startSample, numSamples);
 
     // Amplitude EG envelopes
     for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
@@ -388,13 +391,12 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
     
     if (region->amplitudeCC)
     {
-        amplitudeEnvelope.getEnvelope(envelopeBuffer.data(), numSamples);
-        for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
-            outputBuffer.applyGain(sampleIdx, 1, envelopeBuffer[envelopeIdx++]);
+        amplitudeEnvelope.getEnvelope(localEnvelopeBuffer);
+        outputBlock.multiply(localEnvelopeBuffer);
     }
     else
     {
-        outputBuffer.applyGain(baseGain);
+        outputBlock.multiply(baseGain);
     }
 
     if (state == SfzVoiceState::release && !amplitudeEGEnvelope.isSmoothing())

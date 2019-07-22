@@ -35,15 +35,16 @@ public:
         }
     }
 
-    void getEnvelope(OutputType* output, int numSamples)
+    void getEnvelope(dsp::AudioBlock<float> output)
     {
         if (events.empty())
         {
-            std::fill(output, output + numSamples, currentValue);
+            output.fill(currentValue);
             return;
         }
 
         std::sort(events.begin(), events.end(), EventComparator());
+        const auto numSamples = output.getNumSamples();
         int eventIndex { 0 };
         int sampleIndex { 0 };
         int numSteps { 0 };
@@ -61,7 +62,7 @@ public:
                 
                 if (eventIndex == events.size())
                 {
-                    std::fill(output + sampleIndex, output + numSamples, currentValue);
+                    output.getSubBlock(sampleIndex, numSamples - sampleIndex).fill(currentValue);
                     clearEvents();
                     return;
                 }
@@ -72,7 +73,8 @@ public:
                 }
             }
 
-            output[sampleIndex] = currentValue;
+            for (auto channelIndex = 0; channelIndex < config::numChannels; ++channelIndex)
+                output.setSample(channelIndex, sampleIndex, currentValue);
             numSteps--;
             sampleIndex++;
             currentValue += step;

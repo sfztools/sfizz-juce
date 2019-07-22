@@ -95,7 +95,9 @@ private:
     SfzBlockEnvelope<float> panEnvelope;
     SfzBlockEnvelope<float> positionEnvelope;
     SfzBlockEnvelope<float> widthEnvelope;
-    Buffer<float> envelopeBuffer { config::defaultSamplesPerBlock };
+    HeapBlock<char> envelopeHeapBlock;
+    dsp::AudioBlock<float> envelopeBuffer;
+    // Buffer<float> envelopeBuffer { config::defaultSamplesPerBlock };
 
     // Internal position and counters
     int initialDelay { 0 };
