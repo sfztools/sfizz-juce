@@ -29,13 +29,13 @@ SfzVoice::SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCV
 {
 }
 
-SfzVoice::~SfzVoice()
+SfzVoice::~SfzVoice() noexcept
 {
     if (fileLoadingPool.contains(this))
         fileLoadingPool.removeJob(this, true, 100);
 }
 
-void SfzVoice::release(int timestamp, bool useFastRelease)
+void SfzVoice::release(int timestamp, bool useFastRelease) noexcept
 {
     if (state != SfzVoiceState::release)
     {
@@ -45,7 +45,7 @@ void SfzVoice::release(int timestamp, bool useFastRelease)
     }
 }
 
-void SfzVoice::startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNumber, uint8_t velocity, int sampleDelay)
+void SfzVoice::startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNumber, uint8_t velocity, int sampleDelay) noexcept
 {
     commonStartVoice(newRegion, sampleDelay);
     triggeringNoteNumber = noteNumber;
@@ -55,14 +55,14 @@ void SfzVoice::startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNum
     amplitudeEGEnvelope.prepare(region->amplitudeEG, ccState, velocity, sampleDelay);
 }
 
-void SfzVoice::startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue [[maybe_unused]], int sampleDelay)
+void SfzVoice::startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue [[maybe_unused]], int sampleDelay) noexcept
 {
     commonStartVoice(newRegion, sampleDelay);
     triggeringCCNumber = ccNumber;
     triggeringChannel = channel;
 }
 
-void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
+void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay) noexcept
 {
     // The voice should be idling!
     jassert(state == SfzVoiceState::idle);
@@ -117,7 +117,7 @@ void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
     fileLoadingPool.addJob(this, false);
 }
 
-void SfzVoice::registerNoteOff(int channel, int noteNumber, uint8_t velocity [[maybe_unused]], int timestamp)
+void SfzVoice::registerNoteOff(int channel, int noteNumber, uint8_t velocity [[maybe_unused]], int timestamp) noexcept
 {
     if (region == nullptr || !triggeringNoteNumber || !triggeringChannel)
         return;
@@ -134,17 +134,17 @@ void SfzVoice::registerNoteOff(int channel, int noteNumber, uint8_t velocity [[m
     if (noteIsOff && ccState[64] < 64)
         release(timestamp);
 }
-void SfzVoice::registerAftertouch(int channel, uint8_t aftertouch, int timestamp)
+void SfzVoice::registerAftertouch(int channel, uint8_t aftertouch, int timestamp) noexcept
 {
     ignoreUnused(channel, aftertouch, timestamp);
 }
 
-void SfzVoice::registerPitchWheel(int channel, int pitch, int timestamp)
+void SfzVoice::registerPitchWheel(int channel, int pitch, int timestamp) noexcept
 {
     ignoreUnused(channel, pitch, timestamp);
 }
 
-void SfzVoice::registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp)
+void SfzVoice::registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp) noexcept
 {
     if (region == nullptr)
         return;
@@ -234,7 +234,7 @@ void SfzVoice::prepareToPlay(double newSampleRate, int newSamplesPerBlock)
     reset();
 }
 
-bool SfzVoice::checkOffGroup(uint32_t group, int timestamp)
+bool SfzVoice::checkOffGroup(uint32_t group, int timestamp) noexcept
 {
     if (region != nullptr && region->offBy && *region->offBy == group)
     {
@@ -245,19 +245,24 @@ bool SfzVoice::checkOffGroup(uint32_t group, int timestamp)
     return false;
 }
 
-void SfzVoice::fillBlock(dsp::AudioBlock<float> block)
+void SfzVoice::fillGenerator(dsp::AudioBlock<float> block) noexcept
 {
-    if (region->sample == "*sine")
+    if (region->sample == "*silence")
+    {
+        block.clear();
+    }
+    else if (region->sample == "*sine")
     {
         const auto frequency = MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(region->pitchKeycenter) * pitchRatio;
 
         for (int chanIdx = 0; chanIdx < config::numChannels; chanIdx++)
             for(int sampleIdx = 0; sampleIdx < block.getNumSamples(); sampleIdx++)
-                block.setSample(chanIdx, sampleIdx, static_cast<float>(std::sin(frequency * localTime++ / sampleRate)));
-
-        return;
+                block.setSample(chanIdx, sampleIdx, static_cast<float>(std::sin(frequency * sourcePosition++ / sampleRate)));
     }
+}
 
+void SfzVoice::fillBlock(dsp::AudioBlock<float> block) noexcept
+{
     const auto samplesToClear = std::min(initialDelay, (int)block.getNumSamples());
     if (initialDelay > 0)
     {
@@ -270,106 +275,83 @@ void SfzVoice::fillBlock(dsp::AudioBlock<float> block)
             block = block.getSubBlock(samplesToClear);
     }
 
+    if (region->isGenerator())
+        fillGenerator(block);
+    else if (dataReady)
+        fillWithFileData(block, samplesToClear);
+    else
+        fillWithPreloadedData(block, samplesToClear);
+}
+
+void SfzVoice::fillWithFileData(dsp::AudioBlock<float> block, int releaseOffset) noexcept
+{
     auto nextPositionBlock = tempBlock1.getSubBlock(0, block.getNumSamples());
     auto interpolationBlock = tempBlock2.getSubBlock(0, block.getNumSamples());
-
     int nextPosition { 0 };
-    if (dataReady)
+    const int lastSample { fileData->getNumSamples() - 1 };
+ 
+    for (auto sampleIdx = 0; sampleIdx < block.getNumSamples(); ++sampleIdx)
     {
-        const int lastSample { fileData->getNumSamples() - 1 };
-        for (auto sampleIdx = 0; sampleIdx < block.getNumSamples(); ++sampleIdx)
+        if (sourcePosition > lastSample)
         {
-            if (sourcePosition > lastSample)
+            const int overflow { sourcePosition - lastSample - 1};
+            if (region->shouldLoop())
             {
-                const int overflow { sourcePosition - lastSample - 1};
-                if (region->shouldLoop())
-                {
-                    sourcePosition = region->loopRange.getStart() + overflow;
-                    nextPosition = sourcePosition + 1;
-                }
-                else if (region->sampleCount && loopCount < *region->sampleCount)
-                {
-                    // We're looping and counting, restart the source position
-                    loopCount += 1;
-                    sourcePosition = region->loopRange.getStart() + overflow;
-                    nextPosition = sourcePosition + 1;
-                }
-                else
-                {
-                    block.getSubBlock(sampleIdx).clear();
-                    nextPositionBlock.getSubBlock(sampleIdx).clear();
-                    interpolationBlock.getSubBlock(sampleIdx).clear();
-                    release(sampleIdx + samplesToClear);
-                    break;
-                }
-            }
-            else if (sourcePosition == lastSample)
-            {
-                if (region->shouldLoop())
-                {
-                    nextPosition = region->loopRange.getStart();
-                }
-                else if (region->sampleCount && loopCount < *region->sampleCount)
-                {
-                    loopCount += 1;
-                    nextPosition = region->loopRange.getStart();
-                }
-                else
-                {
-                    block.getSubBlock(sampleIdx).clear();
-                    nextPositionBlock.getSubBlock(sampleIdx).clear();
-                    interpolationBlock.getSubBlock(sampleIdx).clear();
-                    release(sampleIdx + samplesToClear);
-                    return;
-                }
-            }
-            else
-            {
+                sourcePosition = region->loopRange.getStart() + overflow;
                 nextPosition = sourcePosition + 1;
             }
-
-            nextPosition = sourcePosition + 1;
-            for (auto chanIdx = 0; chanIdx < config::numChannels; ++chanIdx)
+            else if (region->sampleCount && loopCount < *region->sampleCount)
             {
-                block.setSample(chanIdx, sampleIdx, fileData->getSample(chanIdx, sourcePosition));
-                nextPositionBlock.setSample(chanIdx, sampleIdx, fileData->getSample(chanIdx, nextPosition));
-                interpolationBlock.setSample(chanIdx, sampleIdx, decimalPosition);
+                // We're looping and counting, restart the source position
+                loopCount += 1;
+                sourcePosition = region->loopRange.getStart() + overflow;
+                nextPosition = sourcePosition + 1;
             }
-
-            decimalPosition += speedRatio * pitchRatio;
-            const auto sampleStep = static_cast<int>(decimalPosition);
-            sourcePosition += sampleStep;
-            decimalPosition -= sampleStep;
-        }
-    }
-    else
-    {
-        for (auto sampleIdx = 0; sampleIdx < block.getNumSamples(); ++sampleIdx)
-        {
-            // We need these because the preloaded data may be reused for multiple samples...
-            if (    sourcePosition >= preloadedData->getNumSamples() - 1
-                ||  sourcePosition >= (region->loopRange.getEnd() - 1) 
-                ||  sourcePosition >= (region->sampleEnd - 1))
+            else
             {
                 block.getSubBlock(sampleIdx).clear();
                 nextPositionBlock.getSubBlock(sampleIdx).clear();
                 interpolationBlock.getSubBlock(sampleIdx).clear();
+                release(sampleIdx + releaseOffset);
                 break;
             }
-
-            nextPosition = sourcePosition + 1;
-            for (auto chanIdx = 0; chanIdx < config::numChannels; ++chanIdx)
-            {
-                block.setSample(chanIdx, sampleIdx, preloadedData->getSample(chanIdx, sourcePosition));
-                nextPositionBlock.setSample(chanIdx, sampleIdx, preloadedData->getSample(chanIdx, nextPosition));
-                interpolationBlock.setSample(chanIdx, sampleIdx, decimalPosition);
-            }
-            
-            decimalPosition += speedRatio * pitchRatio;
-            const auto sampleStep = static_cast<int>(decimalPosition);
-            sourcePosition += sampleStep;
-            decimalPosition -= sampleStep;
         }
+        else if (sourcePosition == lastSample)
+        {
+            if (region->shouldLoop())
+            {
+                nextPosition = region->loopRange.getStart();
+            }
+            else if (region->sampleCount && loopCount < *region->sampleCount)
+            {
+                loopCount += 1;
+                nextPosition = region->loopRange.getStart();
+            }
+            else
+            {
+                block.getSubBlock(sampleIdx).clear();
+                nextPositionBlock.getSubBlock(sampleIdx).clear();
+                interpolationBlock.getSubBlock(sampleIdx).clear();
+                release(sampleIdx + releaseOffset);
+                return;
+            }
+        }
+        else
+        {
+            nextPosition = sourcePosition + 1;
+        }
+
+        for (auto chanIdx = 0; chanIdx < config::numChannels; ++chanIdx)
+        {
+            block.setSample(chanIdx, sampleIdx, fileData->getSample(chanIdx, sourcePosition));
+            nextPositionBlock.setSample(chanIdx, sampleIdx, fileData->getSample(chanIdx, nextPosition));
+            interpolationBlock.setSample(chanIdx, sampleIdx, decimalPosition);
+        }
+
+        decimalPosition += speedRatio * pitchRatio;
+        const auto sampleStep = static_cast<int>(decimalPosition);
+        sourcePosition += sampleStep;
+        decimalPosition -= sampleStep;
     }
 
     nextPositionBlock.multiply(interpolationBlock);
@@ -377,151 +359,62 @@ void SfzVoice::fillBlock(dsp::AudioBlock<float> block)
     block.multiply(interpolationBlock).add(nextPositionBlock);
 }
 
-void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
+void SfzVoice::fillWithPreloadedData(dsp::AudioBlock<float> block, int releaseOffset) noexcept
 {
-    if (region->sample == "*sine")
-    {
-        const auto frequency = MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(region->pitchKeycenter) * pitchRatio;
-        auto time = localTime;
-        const auto endSample = startSample + numSamples;
-
-        for(int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
-        {
-            const float sampleValue = static_cast<float>(std::sin(frequency * time / sampleRate));
-            for (int chanIdx = 0; chanIdx < config::numChannels; chanIdx++)
-                outputBuffer.setSample(chanIdx, sampleIdx, sampleValue);
-            
-            time++;
-        }
-        return;
-    }
-
-    if (initialDelay > 0)
-    {
-        const auto samplesToClear = std::min(initialDelay, numSamples);
-        outputBuffer.clear(startSample, samplesToClear);
-        startSample += samplesToClear;
-        numSamples -= samplesToClear;
-        initialDelay -= samplesToClear;
-
-        if (numSamples == 0)
-            return;
-    }
-
-    const auto endSample = startSample + numSamples;
-    auto** outputData = outputBuffer.getArrayOfWritePointers();
-    auto* leftChannel = outputData[0];
-    auto* rightChannel = outputData[1];
+    auto nextPositionBlock = tempBlock1.getSubBlock(0, block.getNumSamples());
+    auto interpolationBlock = tempBlock2.getSubBlock(0, block.getNumSamples());
     int nextPosition { 0 };
-    // Use the preloaded data
-    if (!dataReady)
+
+    for (auto sampleIdx = 0; sampleIdx < block.getNumSamples(); ++sampleIdx)
     {
-        for (int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
+        // We need these because the preloaded data may be reused for multiple samples...
+        if (    sourcePosition >= preloadedData->getNumSamples() - 1
+            ||  sourcePosition >= (region->loopRange.getEnd() - 1) 
+            ||  sourcePosition >= (region->sampleEnd - 1))
         {
-            
-            // We need these because the preloaded data may be reused for multiple samples...
-            if (    sourcePosition >= preloadedData->getNumSamples() - 1
-                ||  sourcePosition >= (region->loopRange.getEnd() - 1) 
-                ||  sourcePosition >= (region->sampleEnd - 1))
-            {
-                outputBuffer.clear(startSample, endSample - startSample);
-                return;
-            }
-
-            nextPosition = sourcePosition + 1;
-            const auto complementaryPosition = (1 - decimalPosition);
-
-            leftChannel[sampleIdx] = preloadedData->getSample(0, sourcePosition) * complementaryPosition + preloadedData->getSample(0, nextPosition) * decimalPosition;
-            rightChannel[sampleIdx] = preloadedData->getSample(1, sourcePosition) * complementaryPosition + preloadedData->getSample(1, nextPosition) * decimalPosition;
-
-            decimalPosition += speedRatio * pitchRatio;
-            const auto sampleStep = static_cast<int>(decimalPosition);
-            sourcePosition += sampleStep;
-            decimalPosition -= sampleStep;
+            block.getSubBlock(sampleIdx).clear();
+            nextPositionBlock.getSubBlock(sampleIdx).clear();
+            interpolationBlock.getSubBlock(sampleIdx).clear();
+            // TODO: do we release here?
+            release(sampleIdx + releaseOffset);
+            break;
         }
-    }
-    else // we have the file data
-    {
-        const int lastSample { fileData->getNumSamples() - 1 };
-        for (int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
+
+        nextPosition = sourcePosition + 1;
+        for (auto chanIdx = 0; chanIdx < config::numChannels; ++chanIdx)
         {
-            if (sourcePosition > lastSample)
-            {
-                const int overflow { sourcePosition - lastSample - 1};
-                if (region->shouldLoop())
-                {
-                    sourcePosition = region->loopRange.getStart() + overflow;
-                    nextPosition = sourcePosition + 1;
-                }
-                else if (region->sampleCount && loopCount < *region->sampleCount)
-                {
-                    // We're looping and counting, restart the source position
-                    loopCount += 1;
-                    sourcePosition = region->loopRange.getStart() + overflow;
-                    nextPosition = sourcePosition + 1;
-                }
-                else
-                {
-                    release(sampleIdx - startSample);
-                    outputBuffer.clear(startSample, endSample - startSample);
-                    return;
-                }
-            }
-            else if (sourcePosition == lastSample)
-            {
-                if (region->shouldLoop())
-                {
-                    nextPosition = region->loopRange.getStart();
-                }
-                else if (region->sampleCount && loopCount < *region->sampleCount)
-                {
-                    loopCount += 1;
-                    nextPosition = region->loopRange.getStart();
-                }
-                else
-                {
-                    release(sampleIdx - startSample);
-                    outputBuffer.clear(startSample, endSample - startSample);
-                    return;
-                }
-            }
-            else
-            {
-                nextPosition = sourcePosition + 1;
-            }
-
-            const auto complementaryPosition = (1 - decimalPosition);
-            leftChannel[sampleIdx] = fileData->getSample(0, sourcePosition) * complementaryPosition + fileData->getSample(0, nextPosition) * decimalPosition;
-            rightChannel[sampleIdx] = fileData->getSample(1, sourcePosition) * complementaryPosition + fileData->getSample(1, nextPosition) * decimalPosition;
-
-            decimalPosition += speedRatio * pitchRatio;
-            const auto sampleStep = static_cast<int>(decimalPosition);
-            sourcePosition += sampleStep;
-            decimalPosition -= sampleStep;
+            block.setSample(chanIdx, sampleIdx, preloadedData->getSample(chanIdx, sourcePosition));
+            nextPositionBlock.setSample(chanIdx, sampleIdx, preloadedData->getSample(chanIdx, nextPosition));
+            interpolationBlock.setSample(chanIdx, sampleIdx, decimalPosition);
         }
+        
+        decimalPosition += speedRatio * pitchRatio;
+        const auto sampleStep = static_cast<int>(decimalPosition);
+        sourcePosition += sampleStep;
+        decimalPosition -= sampleStep;
     }
+
+    nextPositionBlock.multiply(interpolationBlock);
+    interpolationBlock.negate().add(1.0f);
+    block.multiply(interpolationBlock).add(nextPositionBlock);
 }
 
-void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
+
+void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) noexcept
 {
-    outputBuffer.clear(startSample, numSamples);
-    int envelopeIdx = 0;
-    
-    if (!isPlaying())
-        return;
-
-    if (region == nullptr)
-        return;
-    
-    // fillBuffer(outputBuffer, startSample, numSamples);
     auto outputBlock = dsp::AudioBlock<float>(outputBuffer).getSubBlock(startSample, numSamples);
+    if (!isPlaying() || region == nullptr)
+    {
+        outputBlock.clear();
+        return;
+    }
+    
     fillBlock(outputBlock);
-    auto localEnvelopeBuffer = tempBlock1.getSubBlock(startSample, numSamples);
-
     // Amplitude EG envelopes
     for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
         outputBuffer.applyGain(sampleIdx, 1, amplitudeEGEnvelope.getNextValue());
     
+    auto localEnvelopeBuffer = tempBlock1.getSubBlock(startSample, numSamples);
     if (region->amplitudeCC)
     {
         amplitudeEnvelope.getEnvelope(localEnvelopeBuffer);
@@ -536,7 +429,7 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
         fileLoadingPool.addJob(this, false);
 }
 
-void SfzVoice::reset()
+void SfzVoice::reset() noexcept
 {
     DBG("Reset the voice to its idling state");
     state = SfzVoiceState::idle;
@@ -548,20 +441,21 @@ void SfzVoice::reset()
     fileData.reset();
     preloadedData.reset();
     initialDelay = 0;
-    localTime = 0;
+    sourcePosition = 0;
+    decimalPosition = 0;
 }
 
-std::optional<int> SfzVoice::getTriggeringNoteNumber() const
+std::optional<int> SfzVoice::getTriggeringNoteNumber() const noexcept
 {
     return triggeringNoteNumber;
 }
 
-std::optional<int> SfzVoice::getTriggeringCCNumber() const
+std::optional<int> SfzVoice::getTriggeringCCNumber() const noexcept
 {
     return triggeringCCNumber;
 }
 
-std::optional<int> SfzVoice::getTriggeringChannel() const
+std::optional<int> SfzVoice::getTriggeringChannel() const noexcept
 {
     return triggeringChannel;
 }

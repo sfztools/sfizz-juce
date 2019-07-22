@@ -41,27 +41,26 @@ class SfzVoice: public ThreadPoolJob
 public:
     SfzVoice() = delete;
     SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState);
-    ~SfzVoice();
+    ~SfzVoice() noexcept;
     
-    void startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNumber, uint8_t velocity, int sampleDelay);
-    void startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue, int sampleDelay);
+    void startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNumber, uint8_t velocity, int sampleDelay) noexcept;
+    void startVoiceWithCC(SfzRegion& newRegion, int channel, int ccNumber, uint8_t ccValue, int sampleDelay) noexcept;
     void prepareToPlay(double sampleRate, int samplesPerBlock);
-    void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
-    void processMidi(MidiMessage& msg, int timestamp);
+    void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) noexcept;
 
-    void registerAftertouch(int channel, uint8_t aftertouch, int timestamp);
-    void registerPitchWheel(int channel, int pitch, int timestamp);
-    void registerNoteOff(int channel, int noteNumber, uint8_t velocity, int timestamp);
-    void registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp);
-    bool checkOffGroup(uint32_t group, int timestamp);
+    void registerAftertouch(int channel, uint8_t aftertouch, int timestamp) noexcept;
+    void registerPitchWheel(int channel, int pitch, int timestamp) noexcept;
+    void registerNoteOff(int channel, int noteNumber, uint8_t velocity, int timestamp) noexcept;
+    void registerCC(int channel, int ccNumber, uint8_t ccValue, int timestamp) noexcept;
+    bool checkOffGroup(uint32_t group, int timestamp) noexcept;
 
-    void reset();
+    void reset() noexcept;
     bool isFree() const { return state == SfzVoiceState::idle; }
     bool isPlaying() const { return state != SfzVoiceState::idle; }
 
-    std::optional<int> getTriggeringChannel() const;
-    std::optional<int> getTriggeringNoteNumber() const;
-    std::optional<int> getTriggeringCCNumber() const;
+    std::optional<int> getTriggeringChannel() const noexcept;
+    std::optional<int> getTriggeringNoteNumber() const noexcept;
+    std::optional<int> getTriggeringCCNumber() const noexcept;
 private:
     ThreadPool& fileLoadingPool;
     SfzFilePool& filePool;
@@ -105,15 +104,16 @@ private:
     int initialDelay { 0 };
     int sourcePosition { 0 };
     uint32_t loopCount { 1 };
-    uint32_t localTime { 0 };
 
     float decimalPosition { 0.0f };
 
     JobStatus runJob() override;
     void clearEnvelopes() noexcept;
-    void release(int timestamp, bool useFastRelease = false);
-    void fillBuffer(AudioBuffer<float>& buffer, int startSample, int numSamples);
-    void fillBlock(dsp::AudioBlock<float> block);
-    void commonStartVoice(SfzRegion& newRegion, int sampleDelay);
+    void release(int timestamp, bool useFastRelease = false) noexcept;
+    void fillBlock(dsp::AudioBlock<float> block) noexcept;
+    void fillGenerator(dsp::AudioBlock<float> block) noexcept;
+    void fillWithPreloadedData(dsp::AudioBlock<float> block, int releaseOffset) noexcept;
+    void fillWithFileData(dsp::AudioBlock<float> block, int releaseOffset) noexcept;
+    void commonStartVoice(SfzRegion& newRegion, int sampleDelay) noexcept;
     JUCE_LEAK_DETECTOR(SfzVoice)
 };

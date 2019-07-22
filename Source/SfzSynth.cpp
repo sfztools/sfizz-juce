@@ -467,9 +467,9 @@ void SfzSynth::renderNextBlock(AudioBuffer<float>& outputAudio, int startSample,
 	// Render all the voices
 	for (auto& voice: voices)
 	{
-		voice.renderNextBlock(tempBuffer, 0, numSamples);
-		for (int channelIdx = 0; channelIdx < outputAudio.getNumChannels(); ++channelIdx)
-			outputAudio.addFrom(channelIdx, startSample, tempBuffer, channelIdx, 0, numSamples);
+		voice.renderNextBlock(tempBuffer, startSample, numSamples);
+		for (int channelIdx = 0; channelIdx < config::numChannels; ++channelIdx)
+			outputAudio.addFrom(channelIdx, startSample, tempBuffer, channelIdx, startSample, numSamples);
 	}
 }
 
