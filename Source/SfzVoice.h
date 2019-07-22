@@ -27,6 +27,7 @@
 #include "SfzEnvelope.h"
 #include "Buffer.h"
 #include "SfzBlockEnvelope.h"
+#include <future>
 
 enum class SfzVoiceState
 {
@@ -39,7 +40,7 @@ class SfzVoice: public ThreadPoolJob
 {
 public:
     SfzVoice() = delete;
-    SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState, int bufferCapacity = config::bufferSize);
+    SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState);
     ~SfzVoice();
     
     void startVoiceWithNote(SfzRegion& newRegion, int channel, int noteNumber, uint8_t velocity, int sampleDelay);
@@ -66,11 +67,6 @@ private:
     SfzFilePool& filePool;
     const CCValueArray& ccState;
 
-    // Fifo/Circular buffer
-    AudioBuffer<float> buffer;
-    // TODO : No need for shared pointers anymore
-    AbstractFifo fifo;
-
     // Message and region that activated the note
     std::optional<int> triggeringChannel;
     std::optional<int> triggeringNoteNumber;
@@ -78,6 +74,8 @@ private:
     SfzRegion* region { nullptr };
     std::unique_ptr<AudioFormatReader> reader { nullptr };
     std::shared_ptr<AudioBuffer<float>> preloadedData { nullptr };
+    std::unique_ptr<AudioBuffer<float>> fileData { nullptr };
+    std::atomic<bool> dataReady;
 
     // Sustain logic
     bool noteIsOff { true };
@@ -101,7 +99,7 @@ private:
     Buffer<float> envelopeBuffer { config::defaultSamplesPerBlock };
 
     // Internal position and counters
-    int initialDelay{0};
+    int initialDelay { 0 };
     int sourcePosition { 0 };
     uint32_t loopCount { 1 };
     uint32_t localTime { 0 };

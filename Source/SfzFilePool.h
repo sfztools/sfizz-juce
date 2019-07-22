@@ -26,68 +26,6 @@
 #include <memory>
 #include <map>
 
-// class SfzReader
-// {
-// public: virtual int read(AudioBuffer<float> buffer, int startSample, int numSamples) = 0;
-// };
-
-// class SfzSilenceReader: public SfzReader
-// {
-// public:
-//     int read(AudioBuffer<float> buffer, int startSample, int numSamples) override
-//     {
-//         buffer.clear(startSample, numSamples);
-//         return numSamples;
-//     }
-// };
-
-// class SfzSineReader: public SfzReader
-// {
-// public:
-//     SfzSineReader(uint8_t pitch, double sampleRate)
-//     : pitch(pitch), sampleRate(sampleRate)
-//     {
-
-//     }
-//     int read(AudioBuffer<float> buffer, int startSample, int numSamples) override
-//     {
-//         const auto frequency = MathConstants<float>::twoPi * MidiMessage::getMidiNoteInHertz(pitch);
-//         const auto endSample = startSample + numSamples;
-//         for(int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
-//         {
-//             const float sampleValue = static_cast<float>(std::sin(frequency * sampleIdx / sampleRate));
-//             for (int chanIdx = 0; chanIdx < config::numChannels; chanIdx++)
-//             {
-//                 buffer.setSample(chanIdx, sampleIdx, sampleValue);
-//             }
-//         }
-//         return numSamples;
-//     }
-// private:
-//     uint8_t pitch { SfzDefault::pitchKeycenter };
-//     double sampleRate { config::defaultSampleRate };
-// };
-
-// class SfzFileReader: public SfzReader
-// {
-// public:
-//     SfzFileReader(AudioFormatManager& formatManager, const File& sampleFile, std::shared_ptr<AudioBuffer<float>> preloadedBuffer)
-//     : preloadedBuffer(preloadedBuffer)
-//     , formatManager(formatManager)
-//     , file(file)
-//     {
-
-//     }
-//     int read(AudioBuffer<float> buffer, int startSample, int numSamples) override
-//     {
-        
-//     }
-// private:
-//     AudioFormatManager& formatManager;
-//     File file;
-//     std::shared_ptr<AudioBuffer<float>> preloadedBuffer;
-// };
-
 class SfzFilePool
 {
 public:
@@ -114,6 +52,7 @@ public:
             DBG("Error creating reader for " << sampleName);
             return;
         }
+
         const int actualNumSamples = [offset, numSamples, &reader](){
             if (numSamples > 0) 
                 return (int) jmin( (int64)numSamples + offset, reader->lengthInSamples);

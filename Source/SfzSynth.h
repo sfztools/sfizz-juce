@@ -80,7 +80,7 @@ private:
     void readSfzFile(const std::filesystem::path& fileName, std::vector<std::string>& lines) noexcept;
     SfzFilePool filePool { File::getCurrentWorkingDirectory() };
     double sampleRate { config::defaultSampleRate };
-    int samplesPerBlock { config::bufferSize };
+    int samplesPerBlock { config::defaultSamplesPerBlock };
     std::list<SfzVoice> voices;
     std::vector<SfzRegion> regions;
     std::vector<std::filesystem::path> includedFiles;

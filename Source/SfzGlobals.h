@@ -32,10 +32,9 @@ using CCNamePair = std::pair<uint8_t, String>;
 
 namespace config
 {
-    inline constexpr int bufferSize { 512 };
     inline constexpr double defaultSampleRate { 48000 };
     inline constexpr int defaultSamplesPerBlock { 1024 };
-    inline constexpr int preloadSize { bufferSize };
+    inline constexpr int preloadSize { 8192 };
     inline constexpr int numChannels { 2 };
     inline constexpr int numVoices { 64 };
     inline constexpr int maxGroups { 32 };

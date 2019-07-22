@@ -116,6 +116,7 @@ struct SfzRegion
     bool isRelease() const noexcept { return trigger == SfzTrigger::release || trigger == SfzTrigger::release_key; }
     bool isSwitchedOn() const noexcept;
     bool isGenerator() const noexcept { return sample.startsWithChar('*'); }
+    bool shouldLoop() const noexcept { return (loopMode == SfzLoopMode::loop_continuous || loopMode == SfzLoopMode::loop_sustain); }
 
     bool registerNoteOn(int channel, int noteNumber, uint8_t velocity, float randValue);
     bool registerNoteOff(int channel, int noteNumber, uint8_t velocity, float randValue);

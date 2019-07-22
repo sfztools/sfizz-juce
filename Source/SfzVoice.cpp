@@ -21,15 +21,12 @@
 
 #include "SfzVoice.h"
 
-SfzVoice::SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState, int bufferCapacity)
+SfzVoice::SfzVoice(ThreadPool& fileLoadingPool, SfzFilePool& filePool, const CCValueArray& ccState)
 : ThreadPoolJob( "SfzVoice" )
 , fileLoadingPool(fileLoadingPool)
 , filePool(filePool)
 , ccState(ccState)
-, fifo(bufferCapacity)
-, buffer(config::numChannels, bufferCapacity)
 {
-    buffer.clear();
 }
 
 SfzVoice::~SfzVoice()
@@ -100,14 +97,7 @@ void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
     uint32_t totalOffset { region->offset };
     if (region->offsetRandom > 0)
         totalOffset += Random::getSystemRandom().nextInt((int)region->offsetRandom);
-        
     sourcePosition = totalOffset;
-
-    // Write a short blank in the circular buffer that corresponds to the noteon delay
-    {
-        // The buffer should always be cleared at this point so we cheat :)
-        AbstractFifo::ScopedWrite writer (fifo, sampleDelay);
-    }
 
     // Now there's possibly an additional sample delay from the region opcodes
     initialDelay = 0;
@@ -115,31 +105,10 @@ void SfzVoice::commonStartVoice(SfzRegion& newRegion, int sampleDelay)
         initialDelay += secondsToSamples(region->delay);
     if (region->delayRandom > 0)
         initialDelay += Random::getSystemRandom().nextInt(secondsToSamples(region->delayRandom));
-    if (initialDelay < fifo.getFreeSpace())
-    {
-        AbstractFifo::ScopedWrite writer (fifo, initialDelay);
-        initialDelay = 0;
-    }
-    else
-    {
-        AbstractFifo::ScopedWrite writer (fifo, fifo.getFreeSpace());
-        initialDelay -= writer.blockSize1 + writer.blockSize2;
-    }
-
+    
     preloadedData = filePool.getPreloadedData(region->sample);
     if (preloadedData == nullptr)
         return;
-
-    const auto preloadedDataSize = preloadedData->getNumSamples();
-    const auto samplesToFill = (int)std::min( (uint32_t)fifo.getFreeSpace(), preloadedDataSize - totalOffset);
-
-    {
-        AbstractFifo::ScopedWrite writer (fifo, samplesToFill);
-        copyBuffers(*preloadedData, totalOffset, buffer, writer.startIndex1, writer.blockSize1);
-        copyBuffers(*preloadedData, totalOffset + writer.blockSize1, buffer, writer.startIndex2, writer.blockSize2);
-    }
-
-    sourcePosition = totalOffset + samplesToFill;
 
     // Schedule a callback in the background thread
     fileLoadingPool.addJob(this, false);
@@ -201,109 +170,44 @@ void SfzVoice::registerCC(int channel, int ccNumber, uint8_t ccValue, int timest
 
 ThreadPoolJob::JobStatus SfzVoice::runJob()
 {
-    // No need to read anything in idle state
     if (state == SfzVoiceState::idle)
         return ThreadPoolJob::jobHasFinished;
 
-    // Release state ended: we can idle
-    if (state == SfzVoiceState::release && !amplitudeEGEnvelope.isSmoothing())
-    {
-        // Should be valid if not smoothing!!
-        DBG("Resetting the voice playing " << region->sample);
-        reset();
-        return ThreadPoolJob::jobHasFinished;
-    }
-
-    // The region has to be set before reading data
     if (region == nullptr)
         return ThreadPoolJob::jobHasFinished;
 
-    // Nothing to preload here
+    // Normal case: the voice has ended, free up memory and reset the state
+    if (state == SfzVoiceState::release)
+    {
+        reset();
+        return ThreadPoolJob::jobHasFinished;
+    }
+    
+    // From here on we load a sample file: generators don't need to do this.
     if (region->isGenerator())
         return ThreadPoolJob::jobHasFinished;
 
-    // We should have data in there, so something is wrong
-    if (preloadedData == nullptr)
-        return ThreadPoolJob::jobHasFinished;
-
-    // We need to delay the source still, so fill in the buffer with zeros some more
-    if (initialDelay > 0)
+    // TODO: do a switch here?
+    // Normal case: we are not releasing so we are playing
+    auto reader = filePool.createReaderFor(region->sample);
+    // We should not have a null reader here, something is wrong
+    if (reader == nullptr) // still null
     {
-        AbstractFifo::ScopedWrite writer (fifo, fifo.getFreeSpace());
-        initialDelay -= writer.blockSize1 + writer.blockSize2;
+        DBG("Could not create reader: something is wrong with the sample " << region->sample);
+        return ThreadPoolJob::jobHasFinished;
     }
     
-    // The buffer is full: nothing to do
-    if (fifo.getFreeSpace() == 0)
-        return ThreadPoolJob::jobHasFinished;
+    const int64 endOrLoopEnd = static_cast<int64>(std::min(region->sampleEnd, region->loopRange.getEnd()));
+    // A >2 gb sample file is a bit unreasonable, but it will cause serious issues
+    jassert(reader->lengthInSamples <= std::numeric_limits<int>::max());
+    jassert(endOrLoopEnd <= std::numeric_limits<int>::max());
 
-    bool loopingSample = (region->loopMode == SfzLoopMode::loop_continuous || region->loopMode == SfzLoopMode::loop_sustain);
-    // DBG("Reading " << requiredInputs << " samples for source " << region->sample << "(Remaining " << region->sampleEnd - sourcePosition << ")");
+    const int numSamples = static_cast<int>(std::min(reader->lengthInSamples, endOrLoopEnd));
 
-    // Source looping logic
-    const int endOrLoopEnd = static_cast<int>(std::min(region->sampleEnd, region->loopRange.getEnd()));
-    while (true)
-    {
-        const int samplesLeft { endOrLoopEnd - sourcePosition };
-        const auto numSamplesToRead = std::min(samplesLeft, fifo.getFreeSpace());
-        const int preloadedSamplesLeft { preloadedData->getNumSamples() - sourcePosition };
-
-        if (preloadedSamplesLeft > 0)
-        {
-            const auto numSamplesToReadPreloaded = std::min(numSamplesToRead, preloadedSamplesLeft);
-            AbstractFifo::ScopedWrite writer (fifo, numSamplesToReadPreloaded);
-            copyBuffers(*preloadedData, sourcePosition, buffer, writer.startIndex1, writer.blockSize1);
-            sourcePosition += writer.blockSize1;
-            copyBuffers(*preloadedData, sourcePosition, buffer, writer.startIndex2, writer.blockSize2);
-            sourcePosition += writer.blockSize2;
-        }
-        else if (numSamplesToRead > 0)
-        {
-            if (reader == nullptr)
-            {
-                reader = filePool.createReaderFor(region->sample);
-                if (reader == nullptr) // still null
-                {
-                    DBG("Something is wrong with the sample " << region->sample);
-                    return ThreadPoolJob::jobHasFinished;
-                }
-            }
-            AbstractFifo::ScopedWrite writer (fifo, numSamplesToRead);
-            reader->read(&buffer, writer.startIndex1, writer.blockSize1, sourcePosition, true, true);
-            sourcePosition += writer.blockSize1;
-            reader->read(&buffer, writer.startIndex2, writer.blockSize2, sourcePosition, true, true);
-            sourcePosition += writer.blockSize2;
-        }
-
-        // We reached the sample end or sample loop end
-        if (    sourcePosition == static_cast<int>(region->sampleEnd)
-            ||  sourcePosition == static_cast<int>(region->loopRange.getEnd()) )
-        {
-            if (loopingSample)
-            {
-                sourcePosition = region->loopRange.getStart();
-            }
-            else if (region->sampleCount && loopCount < *region->sampleCount)
-            {
-                // We're looping and counting, restart the source position
-                loopCount += 1;
-                sourcePosition = region->loopRange.getStart();
-            }
-            else
-            {
-                DBG("Sample " << region->sample << " end! Releasing...");
-                release(fifo.getNumReady());
-                break;
-            }
-        }
-
-        if (fifo.getFreeSpace() == 0)
-            break;
-
-        if (shouldExit())
-            return ThreadPoolJob::jobNeedsRunningAgain;
-    }
-    
+    fileData = std::make_unique<AudioBuffer<float>>(config::numChannels, numSamples);
+    fileData->clear();
+    reader->read(fileData.get(), 0, numSamples, 0, true, true);
+    dataReady = true;
     return ThreadPoolJob::jobHasFinished;
 }
 
@@ -347,54 +251,112 @@ void SfzVoice::fillBuffer(AudioBuffer<float>& outputBuffer, int startSample, int
             
             time++;
         }
+        return;
     }
-    else
-    {
-        int start1, size1, start2, size2;
-        const int availableSamples = fifo.getNumReady();
-        fifo.prepareToRead(availableSamples, start1, size1, start2, size2);
-        int fifoIdx { start1 };
-        int end1 { start1 + size1 - 1};
-        int nextIdx { 0 };
-        int consumedSamples { 0 };
 
-        auto** outputData = outputBuffer.getArrayOfWritePointers();
-        auto* leftChannel = outputData[0];
-        auto* rightChannel = outputData[1];
-        // Sample reading and pitch correction
-        for (int sampleIdx = startSample; sampleIdx < numSamples; sampleIdx++)
+    if (initialDelay > 0)
+    {
+        const auto samplesToClear = std::min(initialDelay, numSamples);
+        outputBuffer.clear(startSample, samplesToClear);
+        startSample += samplesToClear;
+        numSamples -= samplesToClear;
+        initialDelay -= samplesToClear;
+
+        if (numSamples == 0)
+            return;
+    }
+
+    const auto endSample = startSample + numSamples;
+    auto** outputData = outputBuffer.getArrayOfWritePointers();
+    auto* leftChannel = outputData[0];
+    auto* rightChannel = outputData[1];
+    int nextPosition { 0 };
+    // Use the preloaded data
+    if (!dataReady)
+    {
+        for (int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
         {
-            if (fifoIdx == end1)
+            
+            // We need these because the preloaded data may be reused for multiple samples...
+            if (    sourcePosition >= preloadedData->getNumSamples() - 1
+                ||  sourcePosition >= (region->loopRange.getEnd() - 1) 
+                ||  sourcePosition >= (region->sampleEnd - 1))
             {
-                nextIdx = start2;
+                outputBuffer.clear(startSample, endSample - startSample);
+                return;
             }
-            else if (fifoIdx > end1)
+
+            nextPosition = sourcePosition + 1;
+            const auto complementaryPosition = (1 - decimalPosition);
+
+            leftChannel[sampleIdx] = preloadedData->getSample(0, sourcePosition) * complementaryPosition + preloadedData->getSample(0, nextPosition) * decimalPosition;
+            rightChannel[sampleIdx] = preloadedData->getSample(1, sourcePosition) * complementaryPosition + preloadedData->getSample(1, nextPosition) * decimalPosition;
+
+            decimalPosition += speedRatio * pitchRatio;
+            const auto sampleStep = static_cast<int>(decimalPosition);
+            sourcePosition += sampleStep;
+            decimalPosition -= sampleStep;
+        }
+    }
+    else // we have the file data
+    {
+        const int lastSample { fileData->getNumSamples() - 1 };
+        for (int sampleIdx = startSample; sampleIdx < endSample; sampleIdx++)
+        {
+            if (sourcePosition > lastSample)
             {
-                fifoIdx = start2 + fifoIdx - end1 - 1;
-                nextIdx = fifoIdx + 1;
+                const int overflow { sourcePosition - lastSample - 1};
+                if (region->shouldLoop())
+                {
+                    sourcePosition = region->loopRange.getStart() + overflow;
+                    nextPosition = sourcePosition + 1;
+                }
+                else if (region->sampleCount && loopCount < *region->sampleCount)
+                {
+                    // We're looping and counting, restart the source position
+                    loopCount += 1;
+                    sourcePosition = region->loopRange.getStart() + overflow;
+                    nextPosition = sourcePosition + 1;
+                }
+                else
+                {
+                    outputBuffer.clear(startSample, endSample - startSample);
+                    return;
+                }
+            }
+            else if (sourcePosition == lastSample)
+            {
+                if (region->shouldLoop())
+                {
+                    nextPosition = region->loopRange.getStart();
+                }
+                else if (region->sampleCount && loopCount < *region->sampleCount)
+                {
+                    loopCount += 1;
+                    nextPosition = region->loopRange.getStart();
+                }
+                else
+                {
+                    DBG("Sample " << region->sample << " end! Releasing...");
+                    release(sampleIdx - startSample);
+                    outputBuffer.clear(startSample, endSample - startSample);
+                    return;
+                }
             }
             else
             {
-                nextIdx = fifoIdx + 1;
+                nextPosition = sourcePosition + 1;
             }
-            
+
             const auto complementaryPosition = (1 - decimalPosition);
-            leftChannel[sampleIdx] = buffer.getSample(0, fifoIdx) * complementaryPosition + buffer.getSample(0, nextIdx) * decimalPosition;
-            rightChannel[sampleIdx] = buffer.getSample(1, fifoIdx) * complementaryPosition + buffer.getSample(1, nextIdx) * decimalPosition;
-            
+            leftChannel[sampleIdx] = fileData->getSample(0, sourcePosition) * complementaryPosition + fileData->getSample(0, nextPosition) * decimalPosition;
+            rightChannel[sampleIdx] = fileData->getSample(1, sourcePosition) * complementaryPosition + fileData->getSample(1, nextPosition) * decimalPosition;
+
             decimalPosition += speedRatio * pitchRatio;
             const auto sampleStep = static_cast<int>(decimalPosition);
-
-            // DBG("Position " << fifoIdx << " " << nextIdx << " step " << decimalPosition << " (+" << sampleStep << ")");
-            fifoIdx += sampleStep;
+            sourcePosition += sampleStep;
             decimalPosition -= sampleStep;
-            consumedSamples += sampleStep;
-
-            if (consumedSamples > availableSamples)
-                break;
         }
-
-        fifo.finishedRead(consumedSamples);
     }
 }
 
@@ -426,7 +388,7 @@ void SfzVoice::renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample
         outputBuffer.applyGain(baseGain);
     }
 
-    if (!fileLoadingPool.contains(this))
+    if (state == SfzVoiceState::release && !amplitudeEGEnvelope.isSmoothing())
         fileLoadingPool.addJob(this, false);
 }
 
@@ -437,12 +399,12 @@ void SfzVoice::reset()
     triggeringNoteNumber.reset();
     triggeringCCNumber.reset();
     triggeringChannel.reset();
+    dataReady = false;
     reader.reset();
+    fileData.reset();
     preloadedData.reset();
     initialDelay = 0;
     localTime = 0;
-    buffer.clear();
-    fifo.reset();
 }
 
 std::optional<int> SfzVoice::getTriggeringNoteNumber() const
