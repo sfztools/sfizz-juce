@@ -14,4 +14,4 @@ Check the [documentation page] for more information.
 ![Screenshot](screenshot.png)
 
 [documentation page]: https://sfztools.github.io/sfizz-juce/
-[here]: https://sfztools.github.com/sfizz/
+[here]: https://github.com/sfztools/sfizz/
