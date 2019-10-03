@@ -1,5 +1,12 @@
 # TODO
 
+- Crossfades on velocity and keys
+- Crossfades on CC
+- Pitch-related envelopes and resampler
+- Sfz v2 curves
+- EQ
+- Filters
+- LFOs
 - Change the name of the shared code / static library to be able to include it
   in Linux projects
 
