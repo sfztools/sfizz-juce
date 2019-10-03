@@ -34,23 +34,27 @@ plugins:
   - jekyll-sitemap
   - jemoji
 
-url: "https://sfztools.github.io/sfizz"
-
-spdx_license_id: "GPL-3.0-or-later"
-
-project:
-  name: "Sfizz"
-
 organization:
-  name: "SfzTools"
+  name: "SFZTools"
   url: "https://github.com/sfztools"
 
-authors:
-  content: "Paul Ferrand"
-  web: "RedTide"
+project:
+  name: "Sfizz-Juce"
+  url: "https://sfztools.github.io/sfizz"
+  copyright_owner: "Paul Ferrand"
+  spdx_license_id: "GPL-3.0-or-later"
+  docs_path: "master/docs"
+  authors:
+    content: "Paul Ferrand"
+    web: "RedTide"
 
 google:
   analytics_code:
   cse_code:
+
+realfavicongenerator:
+  mask_icon_color: "#5bbad5"
+  msapplication_tile_color: "#da532c"
+  theme_color: "#ffffff"
 
 disqus_shortname:

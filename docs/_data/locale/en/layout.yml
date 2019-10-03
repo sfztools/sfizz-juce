@@ -1,26 +1,75 @@
 navigation:
+- title: Projects
+  type: dropdown
+  icon_type: "hammer"
+  icon_category: "fas"
+  pages:
+  - title: BeatBox
+    url: https://github.com/sfztools/beatbox
+    icon_type: "drum"
+    icon_category: "fas"
+
+  - title: Sfizz Library
+    url: https://github.com/sfztools/sfizz
+    icon_type: "play-circle"
+    icon_category: "fas"
+
+  - title: Sfizz Juce (Archived)
+    url: https://github.com/sfztools/sfizz-juce
+    icon_type: "play-circle"
+    icon_category: "fas"
+    disabled: true
+  -
+  - title: SFZ-Flat
+    url: https://github.com/sfztools/sfz-flat
+  -
+  - title: Geany Syntax Highlight
+    url: https://github.com/sfztools/syntax-highlighting-geany
+
+  - title: Sublime Text Syntax Highlight
+    url: https://github.com/sfztools/syntax-highlighting-sublime-text
+
+  - title: VSCode Syntax Highlight
+    url: https://github.com/sfztools/syntax-highlighting-vscode
+
+- title: Pages
+  type: dropdown
+  icon_type: github
+  icon_category: fab
+  pages:
+  - title: Organization
+    url: https://github.com/sfztools/
+
+  - title: Repository
+    url: https://github.com/sfztools/beatbox
+
+- title: Contacts
+  icon_type: at
+  icon_category: fas
+  type: normal
+  url: /contacts
+
 - title: Status
   type: normal
   url: /status
 
 - title: Downloads
   type: normal
+  icon_type: download
+  icon_category: fas
   url: /downloads
 
-- title: GitHub Repository
+- title: Home
   type: normal
-  url: https://github.com/sfztools/sfizz
+  icon_type: home
+  icon_category: fas
+  url: https://sfztools.github.io
 
 cards:
 - title: Follow us
   icon_type: eye
   icon_category: fas
   links:
-  - title: GitHub Organization
-    url: https://github.com/sfztools/
-    icon_type: github
-    icon_category: fab
-
   - title: "Discord Chat"
     url: "https://discord.gg/3ArE9Mw"
     icon_type: "discord"
@@ -43,9 +92,4 @@ cards:
   - title: "Free SFZ Instruments"
     url: "https://github.com/sfzinstruments/"
     icon_type: "download"
-    icon_category: "fas"
-
-  - title: "RhythmBox"
-    url: "https://sfztools.github.io/rhythmbox/"
-    icon_type: "drum"
     icon_category: "fas"
