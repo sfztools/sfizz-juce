@@ -5,17 +5,17 @@ navigation:
   icon_category: "fas"
   pages:
   - title: BeatBox
-    url: https://github.com/sfztools/beatbox
+    url: https://sfztools.github.com/beatbox
     icon_type: "drum"
     icon_category: "fas"
 
   - title: Sfizz Library
-    url: https://github.com/sfztools/sfizz
+    url: https://sfztools.github.com/sfizz
     icon_type: "play-circle"
     icon_category: "fas"
 
   - title: Sfizz Juce (Archived)
-    url: https://github.com/sfztools/sfizz-juce
+    url: https://sfztools.github.com/sfizz-juce
     icon_type: "play-circle"
     icon_category: "fas"
     disabled: true

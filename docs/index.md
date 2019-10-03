@@ -21,7 +21,7 @@ virtual instrument and tell me what seems wrong :)
 
 Check the [Development Status] page to see which opcodes are currently supported.
 
-[Development Status]: /status
+[Development Status]: {{ "/status" | relative_url }}
 [here]: https://sfztools.github.com/sfizz
 [(see here)]: https://juce.com/discover/stories/projucer-manual
 
